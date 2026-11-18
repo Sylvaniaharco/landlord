@@ -34,6 +34,7 @@
         <h1>Doudizhu <span>Kung2</span></h1>
         <p class="lb-tag"><span lang="zh">斗地主</span> &middot; <span data-t>Lawan Tuan Tanah, 3 pemain</span></p>
         <div class="lb-row">
+          <div class="wallet" data-t-title="Koin meja lawan bot (tersimpan di HP ini)"><i class="coin"></i><b id="lbCoins">1.000</b><small data-t>meja bot</small></div>
           <button id="btnRules" class="btn ghost" type="button" data-t>Aturan</button>
           <button id="btnBoard" class="btn ghost" type="button" data-t>Peringkat</button>
           <button id="btnSound" class="btn ghost" type="button" aria-pressed="true"></button>
@@ -44,19 +45,15 @@
       </div>
       <div class="lb-tables">
         <div id="lbRanked" class="lb-block" hidden>
-          <h2><span data-t>Ranked</span> <small data-t>online · rating Doudizhu</small></h2>
-          <button id="btnRanked" class="tbl wide gold" type="button">
-            <span class="chip" style="--c:#b8324a"><i>★</i></span>
-            <span><b data-t>Cari meja Ranked</b><small id="rankedSub"></small></span>
-          </button>
+          <h2><span data-t>Ranked</span> <small data-t>online · koin akun + rating Doudizhu</small></h2>
+          <div id="rankedTables" class="tables t3"></div>
+          <p id="rankedSub" class="lb-sub"></p>
         </div>
         <div class="lb-block">
-          <h2><span data-t>Latihan</span> <small data-t>lawan 2 bot · tanpa login</small></h2>
+          <h2><span data-t>Lawan 2 bot</span> <small data-t>tanpa login · koin di HP ini</small></h2>
           <div class="lvl-pick"><span data-t>Level bot</span><div id="lvlSeg" class="seg"></div></div>
-          <button id="btnPractice" class="tbl wide" type="button">
-            <span class="chip" style="--c:#2c8f73"><i>▶</i></span>
-            <span><b data-t>Main lawan bot</b><small data-t>Langsung mulai</small></span>
-          </button>
+          <div id="tables" class="tables"></div>
+          <p id="lbNote" class="lb-note" hidden></p>
         </div>
         <div id="lbOnline" class="lb-block" hidden>
           <h2><span data-t>Main bareng teman</span> <small data-t>kode meja · tanpa rating</small></h2>

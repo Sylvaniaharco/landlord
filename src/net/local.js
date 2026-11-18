@@ -5,12 +5,12 @@ import * as R from '../engine/room.js';
 const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 
 export class LocalTable {
-  constructor(user, level, handlers) {
+  constructor(user, level, handlers, stake = 0) {
     this.user = user;
     this.h = handlers;
     this.closed = false;
     this.timer = 0;
-    this.room = R.createPractice(user, level, seed(), Date.now());
+    this.room = R.createPractice(user, level, seed(), Date.now(), stake);
     this.pump();
   }
 

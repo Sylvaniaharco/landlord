@@ -6,6 +6,7 @@ import { botAction, timeoutAction, validLevel, DEFAULT_LEVEL } from './bot.js';
 import { RULES } from './rules.config.js';
 import { mulberry32, mixSeed } from './cards.js';
 import { pickBots, clampAvatar } from './roster.js';
+import { STAKES, minEntry, coinDelta } from './wallet.js';
 
 export const GRACE_MS = 1500; // kelonggaran jaringan setelah waktu giliran habis
 export const BOT_MS = 1100; // jeda bot sebelum main (biar terasa seperti orang)
@@ -41,9 +42,10 @@ export function createRoom(code, host, now, level = DEFAULT_LEVEL) {
   return r;
 }
 
-/** Latihan: kamu + 2 bot, langsung mulai. */
-export function createPractice(user, level, seed, now) {
+/** Latihan: kamu + 2 bot, langsung mulai. stake 0 = tanpa koin; 5/10/20 = koin meja AI di HP (dihitung klien). */
+export function createPractice(user, level, seed, now, stake = 0) {
   const r = base('LATIH', 'practice', now, level);
+  r.stake = STAKES.includes(stake) ? stake : 0;
   r.hostId = user.id;
   r.seats[0] = seatFor(user);
   start(r, user.id, seed, now, mulberry32(mixSeed(seed, 5)));
@@ -229,6 +231,8 @@ function finishHand(room, now) {
   if (room.kind === 'ranked') {
     room.last.settled = false;
     room.last.ratings = [null, null, null];
+    // koin sementara = poin × taruhan; angka pasti (saldo tidak bisa minus) diisi applySettle() setelah server akun menjawab
+    room.last.coins = rankedStake(room) ? r.points.map((p) => coinDelta(p, rankedStake(room))) : null;
     room.nextAt = now + RANKED_NEXT_MS;
   }
 }
@@ -238,9 +242,14 @@ function finishHand(room, now) {
 // seat.userId = id akun bersama (TIDAK PERNAH keluar ke klien). Tanpa host: mulai RANKED_WAIT_MS setelah pemain pertama,
 // tangan berikutnya otomatis. Pemain baru saat tangan berjalan menunggu, lalu menggantikan bot di tangan berikutnya.
 
-export function createRanked(code, now) {
-  return base(code, 'ranked', now, 'hard');
+/** Meja Ranked dengan taruhan koin akun (5/10/20 koin per poin). stake 0 = rating saja (meja lama). */
+export function createRanked(code, now, stake = 0) {
+  const r = base(code, 'ranked', now, 'hard');
+  r.ranked = { stake: STAKES.includes(stake) ? stake : 0 };
+  return r;
 }
+const rankedStake = (room) => room.ranked?.stake || 0;
+const coinsOk = (room, coins) => !rankedStake(room) || Number(coins) >= minEntry(rankedStake(room));
 
 export const isPending = (room, id) => room.pending.some((p) => p.id === id);
 const replaceable = (room) => room.seats.filter((s) => s && (s.bot || s.left)).length;
@@ -255,7 +264,7 @@ export function seatedUser(room, userId) {
   return s ? { key: s.id, left: !!s.left } : null;
 }
 
-/** user = { key, userId, name, avatar, rating } (sudah diverifikasi). Satu akun satu kursi. -> { ok, key } | { ok:false, error } */
+/** user = { key, userId, name, avatar, rating, coins } (sudah diverifikasi). Satu akun satu kursi. -> { ok, key } | { ok:false, error } */
 export function reserve(room, user, now) {
   if (room.kind !== 'ranked' || room.status === 'closed') return { ok: false, error: 'Meja sudah ditutup' };
   const mine = room.seats.find((s) => human(s) && s.userId === user.userId) || room.pending.find((p) => p.userId === user.userId);
@@ -265,10 +274,12 @@ export function reserve(room, user, now) {
     mine.afk = 0;
     mine.idle = 0;
     if (Number.isFinite(user.rating)) mine.rating = user.rating;
+    if (Number.isFinite(user.coins)) mine.coins = user.coins;
     return { ok: true, key: mine.id };
   }
+  if (!coinsOk(room, user.coins)) return { ok: false, error: 'Koin tidak cukup untuk meja ini' };
   if (!joinable(room)) return { ok: false, error: 'Meja penuh' };
-  const seat = { id: user.key, userId: user.userId, name: cleanName(user.name), avatar: clampAvatar(user.avatar) ?? 0, rating: Number(user.rating) || 0 };
+  const seat = { id: user.key, userId: user.userId, name: cleanName(user.name), avatar: clampAvatar(user.avatar) ?? 0, rating: Number(user.rating) || 0, coins: Number(user.coins) || 0 };
   if (room.status !== 'lobby') {
     room.pending.push(seat);
     return { ok: true, key: seat.id };
@@ -309,7 +320,8 @@ export function nextRanked(room, seed, now, rnd) {
     if (!human(s)) return;
     const why = s.left ? 'keluar'
       : room.last?.abandoned?.[i] ? 'Koneksi putus terlalu lama, kursimu diisi bot'
-        : (s.idle || 0) >= IDLE_HANDS ? 'Kamu dikeluarkan dari meja karena tidak aktif 2 tangan' : '';
+        : (s.idle || 0) >= IDLE_HANDS ? 'Kamu dikeluarkan dari meja karena tidak aktif 2 tangan'
+          : !coinsOk(room, s.coins) ? 'Koin tidak cukup untuk lanjut di meja ini' : '';
     if (!why) return;
     if (!s.left) removed[s.id] = why;
     room.seats[i] = null;
@@ -318,6 +330,7 @@ export function nextRanked(room, seed, now, rnd) {
   room.seats.forEach((s, i) => { if (s?.bot) free.push(i); });
   for (const p of room.pending) {
     if (!free.length) { removed[p.id] = 'Meja penuh, coba cari meja lagi'; continue; }
+    if (!coinsOk(room, p.coins)) { removed[p.id] = 'Koin tidak cukup untuk lanjut di meja ini'; continue; }
     const i = free.shift();
     room.seats[i] = p;
     noDupAvatar(room, p, i);
@@ -343,18 +356,26 @@ export function settlePayload(room) {
   return {
     gameId: `${room.code}:${L.round}:${room.createdAt.toString(36)}`,
     mult: L.mult, landlord: L.landlord, landlordWon: L.landlordWon, spring: L.spring || '', bombs: room.game.mult.bombs + room.game.mult.rockets,
+    ...(rankedStake(room) ? { stake: rankedStake(room), points: L.points } : {}),
     seats: room.seats.map((s, i) => (human(s) ? { userId: s.userId, name: s.name, bot: false, abandoned: !!L.abandoned[i] } : { userId: null, name: s.name, bot: true })),
   };
 }
 
-/** Jawaban server akun: { [userId]: { delta, rating, tier } }. */
+/** Jawaban server akun: { [userId]: { delta, rating, tier, coinDelta, coins } }. */
 export function applySettle(room, res) {
   room.seats.forEach((s, i) => {
     const r = human(s) && res ? res[s.userId] : null;
-    if (!r) return;
+    if (!r) {
+      if (room.last.coins && human(s)) room.last.coins[i] = 0; // server akun tidak mencatat kursi ini: tidak ada koin yang berpindah
+      return;
+    }
     room.last.ratings[i] = r.delta;
     s.rating = r.rating;
     s.tier = r.tier;
+    if (room.last.coins) {
+      room.last.coins[i] = Number(r.coinDelta) || 0;
+      if (Number.isFinite(r.coins)) s.coins = r.coins;
+    }
   });
   room.last.settled = true;
 }
@@ -374,12 +395,15 @@ export function viewFor(room, seat, online = () => true, viewerId = '') {
     game: room.game && room.status !== 'lobby' ? gameView(room.game, seat) : null,
     deadline: room.status === 'playing' ? room.deadline : 0,
     turnAt: room.status === 'playing' ? room.turnAt : 0,
-    ranked: room.kind === 'ranked' ? { rating: me?.rating ?? null, tier: me?.tier ?? null, waiting: seat < 0 && !!me, startAt: room.startAt, nextAt: room.nextAt } : null,
+    stake: room.kind === 'ranked' ? rankedStake(room) : room.stake || 0,
+    // Ranked: rating & saldo koin SENDIRI (milik lawan tidak dikirim)
+    ranked: room.kind === 'ranked' ? { rating: me?.rating ?? null, tier: me?.tier ?? null, coins: rankedStake(room) ? me?.coins ?? null : null, waiting: seat < 0 && !!me, startAt: room.startAt, nextAt: room.nextAt } : null,
     last: L && room.status === 'result' ? {
       round: L.round, landlord: L.landlord, winner: L.winner, landlordWon: L.landlordWon, mult: L.mult, mults: L.mults, points: L.points,
       spring: L.spring, springSeats: L.springSeats,
       breakdown: L.breakdown, abandoned: L.abandoned, settled: L.settled ?? true,
       myRating: seat >= 0 && L.ratings ? L.ratings[seat] : null,
+      myCoins: seat >= 0 && L.coins ? L.coins[seat] : null,
     } : null,
   };
 }

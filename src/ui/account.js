@@ -9,7 +9,7 @@ export const loginUrl = `${API}/auth/google?next=doudizhu`;
 
 /**
  * Ringkas jawaban /me + /config. Murni (dites).
- * -> { state: 'off' } | { state: 'out' } | { state: 'in', name, picture }
+ * -> { state: 'off' } | { state: 'out' } | { state: 'in', name, picture, coins } (coins = koin akun bersama, null kalau tidak ada)
  * Tamu Mahjong dihitung belum masuk: Ranked hanya untuk login Google.
  */
 export function accountFrom(me, cfg) {
@@ -17,7 +17,8 @@ export function accountFrom(me, cfg) {
   const u = me.user;
   if (u && !u.guest && typeof u.name === 'string') {
     const pic = typeof u.picture === 'string' && /^https:\/\//.test(u.picture) ? u.picture : '';
-    return { state: 'in', name: u.name.slice(0, 24) || 'Pemain', picture: pic };
+    const coins = Number(me.wallet?.coins);
+    return { state: 'in', name: u.name.slice(0, 24) || 'Pemain', picture: pic, coins: Number.isFinite(coins) ? Math.max(0, Math.floor(coins)) : null };
   }
   return cfg && cfg.google ? { state: 'out' } : { state: 'off' };
 }

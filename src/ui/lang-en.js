@@ -79,6 +79,20 @@ export const EN = {
   'BOM!': 'BOMB!', 'ROKET!': 'ROCKET!', 'SPRING!': 'SPRING!', 'ANTI-SPRING!': 'ANTI-SPRING!', '{name} jadi Tuan Tanah': '{name} is the Landlord',
   'Semua pass — kartu dibagi ulang': 'Everyone passed — redealing', 'Pesawat!': 'Airplane!',
   'Sisa {n} kartu': '{n} cards left', 'Keluar terakhir': 'Final play',
+  // koin
+  'Koin meja lawan bot (tersimpan di HP ini)': 'Bot-table coins (stored on this device)', 'meja bot': 'bot tables', 'Lawan 2 bot': 'Vs 2 bots',
+  'tanpa login · koin di HP ini': 'no login · coins on this device', 'online · koin akun + rating Doudizhu': 'online · account coins + Doudizhu rating',
+  'Akun & koin yang sama dengan Mahjong Kung2 & Capsa Kung2 (koin akun hanya untuk Ranked). Rating Doudizhu terpisah.':
+    'Same account & coins as Mahjong Kung2 & Capsa Kung2 (account coins are only for Ranked). Doudizhu has its own rating.',
+  'Butuh {n}': 'Needs {n}', 'min {n}': 'min {n}', 'Masuk dulu': 'Sign in first', 'Meja {s}': 'Table {s}', 'Tanpa koin': 'No coins',
+  'Koin meja bot kurang dari {min}. Saldo diisi lagi jadi {start} besok jam 00.01 WIB. Sementara main di meja Latihan dulu.':
+    'Bot-table coins are below {min}. Your balance is refilled to {start} tomorrow at 00:01 WIB. Play the Practice table meanwhile.',
+  'Koin meja bot kurang untuk meja {s}': 'Not enough bot-table coins for table {s}', 'Meja {s} butuh minimal {n} koin': 'Table {s} needs at least {n} coins',
+  'Tangan ditinggal dihitung kalah: {n} koin': 'Abandoned hand counted as a loss: {n} coins',
+  'Tangan ini masih jalan. Keluar sekarang dihitung kalah: −{n} koin.': 'This hand is still running. Leaving now counts as a loss: −{n} coins.',
+  'koin = poin × meja · bot mengisi kursi kosong': 'coins = points × table · bots fill empty seats', 'koin = poin × meja': 'coins = points × table',
+  'koin meja bot': 'bot-table coins', 'Koin tidak cukup untuk meja ini': 'Not enough coins for this table', 'Meja tidak dikenal': 'Unknown table',
+  'Koin tidak cukup untuk lanjut di meja ini': 'Not enough coins to keep playing at this table',
   // riwayat
   'Belum ada kartu yang keluar': 'No cards played yet', 'Ronde {n}': 'Round {n}', 'Riwayat kartu': 'Card history',
   'Kartu yang belum terlihat (di tangan lawan / kartu dasar):': 'Cards not seen yet (in opponents\' hands / bottom cards):',
