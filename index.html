@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#2a0d0d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Doudizhu Kung2" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Doudizhu (斗地主, Lawan Tuan Tanah): 3 pemain, 54 kartu. Lawan bot, bareng teman, atau Ranked." />
+  <title>Doudizhu Kung2</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="su0" viewBox="0 0 24 24"><path d="M12 1.5 20 12 12 22.5 4 12Z" /></symbol>
+      <symbol id="su1" viewBox="0 0 24 24"><circle cx="12" cy="6.9" r="4.7" /><circle cx="6.4" cy="14" r="4.7" /><circle cx="17.6" cy="14" r="4.7" /><path d="M10.6 11h2.8c0 5 .7 8.6 2.4 11.5H8.2c1.7-2.9 2.4-6.5 2.4-11.5Z" /></symbol>
+      <symbol id="su2" viewBox="0 0 24 24"><path d="M12 22C5.2 16.3 2 12.3 2 8.2A5.3 5.3 0 0 1 12 5.8 5.3 5.3 0 0 1 22 8.2C22 12.3 18.8 16.3 12 22Z" /></symbol>
+      <symbol id="su3" viewBox="0 0 24 24"><path d="M12 1.5C8.5 6.5 2.5 9.3 2.5 14.2a4.7 4.7 0 0 0 8.3 3c-.3 2-1.1 3.8-2.3 5.3h7c-1.2-1.5-2-3.3-2.3-5.3a4.7 4.7 0 0 0 8.3-3C21.5 9.3 15.5 6.5 12 1.5Z" /></symbol>
+      <symbol id="crown" viewBox="0 0 24 24"><path d="M2.5 7.5 7 11l5-7 5 7 4.5-3.5L19.5 19h-15Z" /><rect x="4.5" y="20" width="15" height="2.2" rx="1" /></symbol>
+    </defs>
+  </svg>
+
+  <div id="app">
+    <!-- LOBI -->
+    <section id="lobby" class="screen">
+      <div class="lb-brand">
+        <div id="emblem" class="emblem" aria-hidden="true"></div>
+        <h1>Doudizhu <span>Kung2</span></h1>
+        <p class="lb-tag"><span lang="zh">斗地主</span> &middot; <span data-t>Lawan Tuan Tanah, 3 pemain</span></p>
+        <div class="lb-row">
+          <button id="btnRules" class="btn ghost" type="button" data-t>Aturan</button>
+          <button id="btnBoard" class="btn ghost" type="button" data-t>Peringkat</button>
+          <button id="btnSound" class="btn ghost" type="button" aria-pressed="true"></button>
+          <button id="btnLang" class="btn ghost" type="button">EN</button>
+          <button id="btnInstall" class="btn ghost" type="button" hidden data-t>Pasang aplikasi</button>
+        </div>
+        <div id="lbAccount" class="lb-acc" hidden></div>
+      </div>
+      <div class="lb-tables">
+        <div id="lbRanked" class="lb-block" hidden>
+          <h2><span data-t>Ranked</span> <small data-t>online · rating Doudizhu</small></h2>
+          <button id="btnRanked" class="tbl wide gold" type="button">
+            <span class="chip" style="--c:#b8324a"><i>★</i></span>
+            <span><b data-t>Cari meja Ranked</b><small id="rankedSub"></small></span>
+          </button>
+        </div>
+        <div class="lb-block">
+          <h2><span data-t>Latihan</span> <small data-t>lawan 2 bot · tanpa login</small></h2>
+          <div class="lvl-pick"><span data-t>Level bot</span><div id="lvlSeg" class="seg"></div></div>
+          <button id="btnPractice" class="tbl wide" type="button">
+            <span class="chip" style="--c:#2c8f73"><i>▶</i></span>
+            <span><b data-t>Main lawan bot</b><small data-t>Langsung mulai</small></span>
+          </button>
+        </div>
+        <div id="lbOnline" class="lb-block" hidden>
+          <h2><span data-t>Main bareng teman</span> <small data-t>kode meja · tanpa rating</small></h2>
+          <div class="lb-row2">
+            <button id="btnCreate" class="btn primary" type="button" data-t>Buat meja</button>
+            <button id="btnJoin" class="btn" type="button" data-t>Gabung pakai kode</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEJA -->
+    <section id="table" class="screen" hidden>
+      <div class="felt"></div>
+      <div class="tb-top">
+        <button id="btnLeave" class="btn ghost small" type="button">&larr; <span data-t>Keluar</span></button>
+        <div id="tbInfo" class="tb-info"></div>
+      </div>
+      <div class="tb-right">
+        <div id="multChip" class="mult" hidden></div>
+        <button id="btnHistory" class="btn ghost small icon" type="button" data-t-title="Riwayat kartu" aria-label="Riwayat kartu">&#9776;</button>
+        <button id="btnSound2" class="btn ghost small icon" type="button" aria-label="Suara"></button>
+      </div>
+      <div id="kitty" class="kitty"></div>
+      <div class="seat s1" data-seat="1"></div>
+      <div class="seat s2" data-seat="2"></div>
+      <div class="played p1" data-played="1"></div>
+      <div class="played p2" data-played="2"></div>
+      <div class="played p0" data-played="0"></div>
+      <div id="center" class="center"></div>
+      <div class="me">
+        <div class="seat s0" data-seat="0"></div>
+        <div id="actbar" class="actbar"></div>
+      </div>
+      <div id="hand" class="hand"></div>
+      <div id="fx" class="fx"></div>
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <div id="modal" class="modal" hidden></div>
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

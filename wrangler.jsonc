@@ -1,0 +1,26 @@
+{
+  // Worker doudizhu: file statis game (hasil `npm run build` di dist) + API meja online di /games/doudizhu/api/*.
+  // Game disajikan di sylvaniaharco.com/games/doudizhu/ (pola yang sama dengan capsa & games-mahjong0hk).
+  // Nama harus sama dengan nama Worker di Cloudflare (yang tersambung ke repo ini).
+  "name": "doudizhu",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/games/doudizhu/api/*"]
+  },
+  "routes": [{ "pattern": "sylvaniaharco.com/games/doudizhu*", "zone_name": "sylvaniaharco.com" }],
+  // Meja online: satu Durable Object per kode meja (SQLite bawaan, tanpa D1); pencari meja Ranked: satu global
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOMS", "class_name": "DdzRoom" },
+      { "name": "LOBBY", "class_name": "DdzLobby" }
+    ]
+  },
+  // Akun ada di Worker Mahjong (akun bersama semua game). Ranked memanggilnya lewat service binding ke entrypoint DoudizhuGate
+  // (tukar tiket jadi data pemain, simpan hasil tangan + rating Doudizhu). Worker Mahjong harus sudah ter-deploy dengan DoudizhuGate.
+  "services": [{ "binding": "MAHJONG", "service": "games-mahjong0hk", "entrypoint": "DoudizhuGate" }],
+  // Tambah class DO baru = tambah tag migrasi baru, jangan ubah yang lama.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DdzRoom", "DdzLobby"] }]
+}

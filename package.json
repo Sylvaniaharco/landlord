@@ -1,0 +1,14 @@
+{
+  "name": "doudizhu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Doudizhu Kung2 (斗地主 / Lawan Tuan Tanah): 3 pemain, lawan 2 bot, online bareng teman, atau Ranked (Cloudflare Workers + Durable Objects).",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.js",
+    "sim": "node scripts/simulate.mjs 3000",
+    "dev": "python3 -m http.server 8080",
+    "dev:online": "npm run build && npx wrangler dev"
+  }
+}
