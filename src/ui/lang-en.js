@@ -2,7 +2,7 @@
 export const EN = {
   // umum
   'Batal': 'Cancel', 'Lanjut': 'Continue', 'Tutup': 'Close', 'Mengerti': 'Got it', 'Memuat…': 'Loading…', 'Keluar': 'Leave',
-  'Suara: nyala': 'Sound: on', 'Suara: mati': 'Sound: off', 'Aturan': 'Rules', 'Peringkat': 'Rankings', 'Pasang aplikasi': 'Install app',
+  'Suara: nyala': 'Sound: on', 'Suara: mati': 'Sound: off', 'Musik: nyala': 'Music: on', 'Musik: mati': 'Music: off', 'Aturan': 'Rules', 'Peringkat': 'Rankings', 'Pasang aplikasi': 'Install app',
   'Lawan Tuan Tanah, 3 pemain': 'Fight the Landlord, 3 players',
   // lobi
   'Ranked': 'Ranked', 'online · rating Doudizhu': 'online · Doudizhu rating', 'Cari meja Ranked': 'Find a Ranked table',

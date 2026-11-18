@@ -59,6 +59,10 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
 
 ## UI yang perlu diingat
 
+- **Musik latar** = salinan `src/ui/music.js` repo games-mahjong0hk (generatif Web Audio, tanpa file), setelan nyala/mati di localStorage `mjhk-music`
+  (sama dengan Mahjong, jadi berlaku di semua game). `initMusic([tombol...], { label })`: tombol `data-music="label"` = tulisan di lobi, lainnya ikon 🎵/🔇.
+  Kalau musik Mahjong berubah, salin lagi (bagian suara jangan diubah sendiri).
+
 - Ukuran dari `--vw`/`--vh` (`fit()` di `src/main.js`), kelas `.portrait` kalau layar tegak; di portrait tangan jadi 2 baris (`.hand.rows`).
   Cek di HP landscape (915×412) dan portrait (412×915) sebelum merge.
 - Kursi tampilan: 0 = saya (bawah), 1 = kanan (giliran berikutnya), 2 = kiri (`toSeat`). Efek (bom, roket, pesawat, spring, Tuan Tanah)
