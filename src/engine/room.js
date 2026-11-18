@@ -279,7 +279,8 @@ export function reserve(room, user, now) {
   }
   if (!coinsOk(room, user.coins)) return { ok: false, error: 'Koin tidak cukup untuk meja ini' };
   if (!joinable(room)) return { ok: false, error: 'Meja penuh' };
-  const seat = { id: user.key, userId: user.userId, name: cleanName(user.name), avatar: clampAvatar(user.avatar) ?? 0, rating: Number(user.rating) || 0, coins: Number(user.coins) || 0 };
+  const seat = { id: user.key, userId: user.userId, name: cleanName(user.name), avatar: clampAvatar(user.avatar) ?? 0, rating: Number(user.rating) || 0, coins: Number(user.coins) || 0,
+    offSince: now || 1 }; // dianggap putus sampai WebSocket tersambung (markOnline true) → kursi yang tidak pernah tersambung tetap dihitung kabur
   if (room.status !== 'lobby') {
     room.pending.push(seat);
     return { ok: true, key: seat.id };
