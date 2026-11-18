@@ -42,9 +42,11 @@ Ranked: HP minta tiket sekali pakai (`POST /games/mahjonghk/api/auth/ticket`), W
   empat+2 pasang, bom (empat sama), roket (dua joker).
 - **Mengikuti:** jenis & jumlah kartu sama, nilai lebih tinggi; bom mengalahkan semua kecuali roket (bom lebih tinggi menang); roket
   mengalahkan semua. Dua pass berturut-turut → yang terakhir main memimpin lagi. Tuan Tanah memimpin pertama.
-- **Skor:** pengali = tawar × 2^(bom) × 2^(roket) × spring/anti-spring ×2 (3 bom = ×8). Tuan Tanah lawan tiap petani: dasar × pengali
-  (Tuan Tanah ±2×, tiap petani ∓1×). Spring: Tuan Tanah habis tanpa petani sempat main. Anti-spring: petani menang & Tuan Tanah hanya
-  keluar sekali.
+- **Skor:** pengali = tawar × 2^(bom) × 2^(roket) (3 bom = ×8). Tuan Tanah lawan tiap petani: dasar × pengali petani itu
+  (Tuan Tanah menerima/membayar jumlah keduanya).
+  **Spring per orang:** Tuan Tanah menang → petani yang sama sekali tidak mengeluarkan kartu bayar ×2, petani yang sempat keluar kartu
+  tidak kena (mis. panggil ×2: yang tidak keluar kartu bayar 4, yang keluar bayar 2, Tuan Tanah +6). Anti-spring: petani menang & Tuan Tanah
+  hanya keluar sekali → ×2 ke kedua petani.
 
 Keputusan yang diambil saat membuat (ubah di config kalau maunya lain):
 
@@ -68,6 +70,7 @@ Keputusan yang diambil saat membuat (ubah di config kalau maunya lain):
 | `allowQuadPlusTwo` | `true` | empat + 2 / empat + 2 pasang |
 | `minStraight` / `minPairStraight` / `minAirplane` | 5 / 3 / 2 | panjang minimal rantai |
 | `bombMult` / `rocketMult` / `springMult` / `antiSpringMult` | 2 | pengali |
+| `springPerPlayer` | `true` | spring ×2 hanya untuk petani yang tidak keluar kartu (`false` = harus kedua petani, ×2 ke keduanya) |
 | `multiplierCap` | 0 | batas pengali total (0 = tanpa batas) |
 | `bidSeconds` / `turnSeconds` | 12 / 20 | waktu giliran (online & latihan) |
 

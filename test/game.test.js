@@ -150,6 +150,30 @@ test('spring: tuan tanah habis tanpa petani sempat main = x2; anti-spring juga x
   assert.deepEqual(k.result.points, [-8, 4, 4]);
 });
 
+test('spring per orang (aturan Teddy): hanya petani yang sama sekali tidak keluar kartu yang x2', () => {
+  const run = (rules) => {
+    const g = fixed(['2 3 4 5 6 7 8', 'K Q', '10 10'], 0, rules);
+    play(g, 0, '3');
+    play(g, 1, 'K');
+    pass(g, 2);
+    play(g, 0, '2');
+    pass(g, 1);
+    pass(g, 2);
+    play(g, 0, '4 5 6 7 8');
+    return g.result;
+  };
+  const r = run(RULES);
+  assert.equal(r.spring, 'spring');
+  assert.deepEqual(r.springSeats, [2]);
+  assert.deepEqual(r.mults, [null, 2, 4], 'kursi 1 sempat keluar kartu: tetap x2 dari panggilan saja');
+  assert.deepEqual(r.points, [6, -2, -4]);
+  assert.equal(r.mult, 4);
+  assert.deepEqual(r.breakdown.find((b) => b.k === 'spring').seats, [2]);
+  const classic = run(makeRules({ springPerPlayer: false }));
+  assert.equal(classic.spring, '');
+  assert.deepEqual(classic.points, [4, -2, -2]);
+});
+
 test('batas pengali (multiplierCap)', () => {
   const g = fixed(['3 3 3 3 4 4 4 4 5', '6', '7'], 0, makeRules({ multiplierCap: 4 }));
   play(g, 0, '3 3 3 3');

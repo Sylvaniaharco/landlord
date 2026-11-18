@@ -30,7 +30,8 @@ export const RULES = Object.freeze({
   // ---------- pengali ----------
   bombMult: 2, // tiap bom yang keluar
   rocketMult: 2, // roket (dua joker)
-  springMult: 2, // spring: tuan tanah menang & kedua petani tidak mengeluarkan kartu sama sekali
+  springMult: 2, // spring: tuan tanah menang & petani tidak mengeluarkan kartu sama sekali
+  springPerPlayer: true, // true (aturan Teddy) = x2 hanya untuk petani yang tidak keluar kartu sama sekali; false = harus kedua petani, x2 ke keduanya
   antiSpringMult: 2, // anti-spring: petani menang & tuan tanah hanya sempat keluar sekali (kartu pertamanya)
   multiplierCap: 0, // batas pengali total, 0 = tanpa batas
 
