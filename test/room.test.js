@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as R from '../src/engine/room.js';
+import { minEntry } from '../src/engine/wallet.js';
 import { mulberry32 } from '../src/engine/cards.js';
 import { botAction } from '../src/engine/bot.js';
 
@@ -164,7 +165,7 @@ test('Ranked: putus lama = kabur, putus sebentar tidak', () => {
 test('Ranked koin: saldo minimal meja, payload berisi taruhan & poin, koin pasti dari server akun, saldo kurang = dilepas', () => {
   const room = R.createRanked('KOIN5', 0, 50);
   const u1 = { key: 'key1key1key1', userId: 'g:1', name: 'Ani', avatar: 0, rating: 1000, coins: 6000 };
-  assert.equal(R.reserve(room, { ...u1, coins: 4999 }, 0).ok, false, 'meja 50 butuh 5.000');
+  assert.equal(R.reserve(room, { ...u1, coins: 1999 }, 0).ok, false, 'meja 50 butuh 2.000');
   assert.ok(R.reserve(room, u1, 0).ok);
   assert.ok(R.reserve(room, { key: 'key2key2key2', userId: 'g:2', name: 'Budi', avatar: 3, coins: 9000 }, 0).ok);
   R.startRanked(room, 12, R.RANKED_WAIT_MS, rnd());
@@ -177,11 +178,11 @@ test('Ranked koin: saldo minimal meja, payload berisi taruhan & poin, koin pasti
   const i1 = room.seats.findIndex((s) => s.userId === 'g:1');
   const i2 = room.seats.findIndex((s) => s.userId === 'g:2');
   // server akun: g:1 kalah besar sampai saldo di bawah minimal meja
-  R.applySettle(room, { 'g:1': { delta: -5, rating: 995, tier: 'bronze', coinDelta: -1500, coins: 4500 }, 'g:2': { delta: 5, rating: 1005, tier: 'bronze', coinDelta: 80, coins: 9080 } });
-  assert.equal(room.last.coins[i1], -1500);
+  R.applySettle(room, { 'g:1': { delta: -5, rating: 995, tier: 'bronze', coinDelta: -4500, coins: 1500 }, 'g:2': { delta: 5, rating: 1005, tier: 'bronze', coinDelta: 80, coins: 9080 } });
+  assert.equal(room.last.coins[i1], -4500);
   const v1 = R.viewFor(room, i1);
-  assert.equal(v1.last.myCoins, -1500);
-  assert.equal(v1.ranked.coins, 4500);
+  assert.equal(v1.last.myCoins, -4500);
+  assert.equal(v1.ranked.coins, 1500);
   assert.equal(v1.stake, 50);
   assert.ok(!JSON.stringify(v1).includes('9080'), 'saldo lawan tidak dikirim');
   const out = R.nextRanked(room, 13, now + R.RANKED_NEXT_MS, rnd());
@@ -193,6 +194,7 @@ test('Ranked koin: saldo minimal meja, payload berisi taruhan & poin, koin pasti
 
 test('Latihan bermeja koin menyimpan taruhannya (dihitung di HP)', () => {
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 100), 0).stake, 100);
+  assert.deepEqual([25, 50, 100].map(minEntry), [500, 2000, 5000], 'saldo minimal meja 25/50/100');
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 7), 0).stake, 0, 'taruhan tidak dikenal = tanpa koin');
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 5), 0).stake, 0, 'taruhan lama 5 sudah tidak dibuka');
   assert.equal(R.createRanked('LAMA5', 0, 10).ranked.stake, 0, 'meja baru tidak bisa memakai taruhan lama');
