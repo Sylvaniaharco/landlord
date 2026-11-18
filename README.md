@@ -4,10 +4,10 @@ Doudizhu 3 pemain di browser, satu keluarga dengan **Mahjong Kung2** dan **Capsa
 Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo ini).
 
 - **Lawan 2 bot** (Mudah / Sedang / Sulit) — tanpa login, jalan di HP (juga offline). Meja **Latihan** (tanpa koin) atau meja koin
-  **5 / 10 / 20** pakai koin meja bot di HP (sama dengan meja AI Capsa: saldo awal 1.000, minimal 100 / 5.000 / 10.000, reset ke 1.000
+  **25 / 50 / 100** pakai koin meja bot di HP (sama dengan meja AI Capsa: saldo awal 1.000, minimal 100 / 5.000 / 10.000, reset ke 1.000
   jam 00.01 WIB kalau bangkrut). Tangan bermeja koin yang ditinggal (keluar / app ditutup) dihitung kalah.
 - **Main bareng teman** — buat meja, bagikan kode 5 huruf / link `…/games/doudizhu/#room=KODE`. Kursi kosong diisi bot. Tanpa rating.
-- **Ranked** — butuh login Google (akun bersama). Pilih meja **5 / 10 / 20 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
+- **Ranked** — butuh login Google (akun bersama). Pilih meja **25 / 50 / 100 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
   saldo minimal 100 / 5.000 / 10.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
   Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + rating Doudizhu (Elo, tier Bronze → Master),
   papan peringkat & riwayat tangan. Saldo kurang dari minimal meja = dilepas dari meja.

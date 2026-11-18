@@ -154,7 +154,7 @@ function renderLobby() {
   note.hidden = !isBroke(wallet.coins);
   note.textContent = tx('Koin meja bot kurang dari {min}. Saldo diisi lagi jadi {start} besok jam 00.01 WIB. Sementara main di meja Latihan dulu.', { min: fmt(minEntry(STAKES[0])), start: fmt(START_COINS) });
   const tile = (t, attr, need, sub) => `<button class="tbl${need ? ' locked' : ''}" ${attr} type="button"${need ? ' aria-disabled="true"' : ''}>
-      <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${tx(t.stake ? 'Meja {s}' : t.name, { s: t.stake })}</b><small>${need || sub}</small></span></button>`;
+      <span class="chip" style="--c:${t.color}"><i${t.chip.length > 2 ? ' class="sm"' : ''}>${t.chip}</i></span><span><b>${tx(t.stake ? 'Meja {s}' : t.name, { s: t.stake })}</b><small>${need || sub}</small></span></button>`;
   $('#tables').innerHTML = TABLES.map((t) => {
     const need = t.stake > 0 && wallet.coins < minEntry(t.stake) ? tx('Butuh {n}', { n: fmt(minEntry(t.stake)) }) : '';
     return tile(t, `data-stake="${t.stake}"`, need, t.stake ? tx('min {n}', { n: fmt(minEntry(t.stake)) }) : tx(t.sub));

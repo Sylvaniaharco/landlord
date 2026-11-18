@@ -548,3 +548,4 @@ button { font: inherit; color: inherit; }
   #app:not(.portrait) .rs-table th { padding: 1px 5px; font-size: 10px; }
   #app:not(.portrait) .rs-btns .btn { padding-top: 7px; padding-bottom: 7px; }
 }
+.tbl .chip i.sm { font-size: .88em; letter-spacing: -.05em; }
