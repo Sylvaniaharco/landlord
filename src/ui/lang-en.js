@@ -78,6 +78,7 @@ export const EN = {
   // efek
   'BOM!': 'BOMB!', 'ROKET!': 'ROCKET!', 'SPRING!': 'SPRING!', 'ANTI-SPRING!': 'ANTI-SPRING!', '{name} jadi Tuan Tanah': '{name} is the Landlord',
   'Semua pass — kartu dibagi ulang': 'Everyone passed — redealing', 'Pesawat!': 'Airplane!',
+  'Sisa {n} kartu': '{n} cards left', 'Keluar terakhir': 'Final play',
   // riwayat
   'Belum ada kartu yang keluar': 'No cards played yet', 'Ronde {n}': 'Round {n}', 'Riwayat kartu': 'Card history',
   'Kartu yang belum terlihat (di tangan lawan / kartu dasar):': 'Cards not seen yet (in opponents\' hands / bottom cards):',

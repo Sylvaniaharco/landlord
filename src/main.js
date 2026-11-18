@@ -418,6 +418,7 @@ function render(v) {
   renderKitty(v);
   renderMult(v);
   renderPlayed(v);
+  renderLeftover(v);
   renderHand(v);
   renderActions(v);
   renderCenter(v);
@@ -518,16 +519,6 @@ function renderPlayed(v) {
     const box = playedEl(d);
     if (!g || g.phase === 'bid') { box.replaceChildren(); box.dataset.key = ''; continue; }
     const k = toSeat(d);
-    if (g.reveal && d > 0) {
-      // tangan selesai: sisa kartu lawan dibuka di tempat kartu keluarnya
-      const key = `${v.round}:open`;
-      box.classList.toggle('open', g.reveal[k].length > 0);
-      if (box.dataset.key === key) continue;
-      box.dataset.key = key;
-      box.replaceChildren(...sortHand(g.reveal[k]).map((c) => cardEl(c, 'mini')));
-      continue;
-    }
-    box.classList.remove('open');
     const start = g.plays.map((p) => !!p.trick).lastIndexOf(true) + 1;
     const mine = g.plays.slice(start).filter((p) => p.seat === k).at(-1);
     const key = mine ? `${v.round}:${g.plays.lastIndexOf(mine)}` : '';
@@ -558,6 +549,26 @@ function renderPlayed(v) {
     box.replaceChildren(...els);
   }
 }
+
+/** Tangan selesai: sisa kartu tiap lawan dibuka di bawah kursinya (kartu terakhir yang keluar tetap di meja). */
+function renderLeftover(v) {
+  const g = v.game;
+  for (const d of [1, 2]) {
+    const box = $(`.leftover[data-left="${d}"]`);
+    const k = toSeat(d);
+    const left = g?.reveal ? g.reveal[k] : [];
+    const key = left.length ? `${v.round}:${left.join()}` : '';
+    if (box.dataset.key === key) continue;
+    box.dataset.key = key;
+    if (!left.length) { box.replaceChildren(); continue; }
+    const t = document.createElement('small');
+    t.textContent = tx('Sisa {n} kartu', { n: left.length });
+    box.replaceChildren(t, ...groupSort(left).map((c) => cardEl(c, 'mini')));
+  }
+}
+
+/** Kartu mini untuk panel hasil. */
+const miniRow = (cards) => `<span class="rs-cards">${groupSort(cards).map((c) => cardEl(c, 'mini').outerHTML).join('')}</span>`;
 
 // ---------- tangan sendiri: ketuk / geser untuk memilih ----------
 /** Urut per kelompok: rank yang paling banyak dulu (333 4, 4444 5 6), lalu dari besar ke kecil. */
@@ -804,12 +815,16 @@ function renderResult(view) {
     const title = me < 0 ? (L.landlordWon ? tx('Tuan Tanah menang') : tx('Petani menang')) : myWin ? tx('Kamu menang!') : tx('Kamu kalah');
     const rows = [0, 1, 2].map((d) => {
       const k = toSeat(d), s = v.seats[k];
-      return `<tr><td>${d === 0 && me >= 0 ? tx('Kamu') : esc(s?.name || '')}${s?.bot ? ' 🤖' : ''}${L.abandoned?.[k] ? ` <small>(${tx('kabur')})</small>` : ''}</td>
+      const left = v.game?.reveal?.[k] || [];
+      return `<tr><td>${d === 0 && me >= 0 ? tx('Kamu') : esc(s?.name || '')}${s?.bot ? ' 🤖' : ''}${L.abandoned?.[k] ? ` <small>(${tx('kabur')})</small>` : ''}${left.length ? miniRow(left) : ''}</td>
         <td>${k === L.landlord ? '👑 ' + tx('Tuan Tanah') : `${tx('Petani')}${L.mults?.[k] ? ` ×${fmt(L.mults[k])}` : ''}`}</td><td class="${cls(L.points[k])}">${signed(L.points[k])}</td><td class="tot">${signed(v.totals[k])}</td></tr>`;
     }).join('');
     const who = (k) => (k === v.seat ? tx('Kamu') : v.seats[k]?.name || '');
     const chips = (L.breakdown || []).map((b) => `<span>${tx(MULT_WORDS[b.k])} ×${b.x}${b.seats ? ` (${b.seats.map((k) => esc(who(k))).join(', ')})` : ''}</span>`).join('')
       + `<span class="tot">= ×${fmt(L.mult)}</span>`;
+    // langkah penutup (yang menghabiskan kartu) supaya kelihatan walau meja tertutup panel
+    const fin = (v.game?.plays || []).filter((p) => p.cards).at(-1);
+    const lastPlay = fin ? `<div class="rs-last"><span>${tx('Keluar terakhir')}: <b>${esc(who(fin.seat))}</b>${fin.combo ? ` · ${tx(TYPE_NAMES[fin.combo.type])}` : ''}</span>${miniRow(fin.cards)}</div>` : '';
     let rating = '';
     if (v.kind === 'ranked' && me >= 0) {
       rating = L.myRating != null ? `<p class="rs-rating ${cls(L.myRating)}">${tx('Rating')} ${signed(L.myRating)}${v.ranked?.rating != null ? ` → ${fmt(v.ranked.rating)}` : ''}</p>`
@@ -821,7 +836,7 @@ function renderResult(view) {
     else btns += `<span class="note">${tx('Menunggu pembuat meja…')}</span>`;
     box.innerHTML = `<div class="rs-panel"><div class="rs-head"><h2 class="${me < 0 ? '' : myWin ? 'win' : 'lose'}">${title}</h2>
       <span class="rs-sum">${me >= 0 ? signed(L.points[me]) : ''}</span></div>
-      <div class="chips">${chips}</div>${rating}
+      <div class="chips">${chips}</div>${lastPlay}${rating}
       <table class="rs-table"><tr><th>${tx('Pemain')}</th><th>${tx('Peran')}</th><th>${tx('Tangan ini')}</th><th>${tx('Total')}</th></tr>${rows}</table>
       <div class="rs-btns">${btns}</div></div>`;
     box.hidden = false;
