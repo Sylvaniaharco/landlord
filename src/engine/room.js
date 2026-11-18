@@ -376,7 +376,8 @@ export function viewFor(room, seat, online = () => true, viewerId = '') {
     turnAt: room.status === 'playing' ? room.turnAt : 0,
     ranked: room.kind === 'ranked' ? { rating: me?.rating ?? null, tier: me?.tier ?? null, waiting: seat < 0 && !!me, startAt: room.startAt, nextAt: room.nextAt } : null,
     last: L && room.status === 'result' ? {
-      round: L.round, landlord: L.landlord, winner: L.winner, landlordWon: L.landlordWon, mult: L.mult, points: L.points, spring: L.spring,
+      round: L.round, landlord: L.landlord, winner: L.winner, landlordWon: L.landlordWon, mult: L.mult, mults: L.mults, points: L.points,
+      spring: L.spring, springSeats: L.springSeats,
       breakdown: L.breakdown, abandoned: L.abandoned, settled: L.settled ?? true,
       myRating: seat >= 0 && L.ratings ? L.ratings[seat] : null,
     } : null,

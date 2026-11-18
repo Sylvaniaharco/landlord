@@ -300,7 +300,7 @@ button { font: inherit; color: inherit; }
 #app.portrait .lb-brand h1 { font-size: 2.4em; }
 
 /* ---------- meja ---------- */
-#table { background: var(--bg); --hh: calc(var(--cw) * 1.4); --gb: max(6px, env(safe-area-inset-bottom, 0px)); }
+#table { background: var(--bg); --hh: calc(var(--cw) * 1.4); --gb: max(6px, env(safe-area-inset-bottom, 0px)); --lift: calc(var(--cw) * .34); }
 .felt {
   position: absolute; inset: 5px; border-radius: 30px;
   background: radial-gradient(ellipse at 50% 40%, var(--felt-1), var(--felt-2) 80%);
@@ -370,19 +370,18 @@ button { font: inherit; color: inherit; }
 
 /* kartu yang keluar */
 .played { position: absolute; z-index: 5; display: flex; align-items: center; pointer-events: none; }
-.played .card { margin-left: calc(var(--mw) * -.46); }
+.played .card { margin-left: calc(var(--mw) * -.42); }
+.played .tag + .card { margin-left: 0; }
 .played .card:first-child { margin-left: 0; }
 .played .card.in { animation: flyIn .28s ease-out both; animation-delay: calc(var(--i, 0) * 18ms); }
 @keyframes flyIn { from { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)) scale(.7); } to { opacity: 1; transform: none; } }
 .played .tag { margin: 0 8px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(0, 0, 0, .55); white-space: nowrap; }
-.played.p1 { right: calc(var(--gut-r) + 90px); top: 36%; flex-direction: row-reverse; --dx: 120px; }
-.played.p1 .card { margin-left: 0; margin-right: calc(var(--mw) * -.46); }
-.played.p1 .card:last-child { margin-right: 0; }
+.played.p1 { right: calc(var(--gut-r) + 90px); top: 36%; --dx: 120px; }
 .played.p2 { left: calc(var(--gut-l) + 90px); top: 36%; --dx: -120px; }
-.played.p0 { left: 50%; translate: -50% 0; bottom: calc(var(--hh) + var(--gb) + 62px); --dy: 80px; }
+.played.p0 { left: 50%; translate: -50% 0; bottom: calc(var(--hh) + var(--gb) + var(--lift) + 58px); --dy: 80px; }
 #app.portrait .played.p1, #app.portrait .played.p2 { top: 30%; max-width: 62%; flex-wrap: wrap; }
 .played.open { flex-wrap: wrap; max-width: 44%; row-gap: 4px; }
-.played.open .card { margin-left: 0 !important; margin-right: calc(var(--mw) * -.5) !important; }
+.played.open .card { margin-left: 0; margin-right: calc(var(--mw) * -.45); }
 #app.portrait .played.p1 { right: calc(var(--gut-r) + 4px); }
 #app.portrait .played.p2 { left: calc(var(--gut-l) + 4px); }
 #app.portrait .seat.s1, #app.portrait .seat.s2 { top: 112px; }
@@ -392,11 +391,11 @@ button { font: inherit; color: inherit; }
 .hand .hrow2 { display: flex; justify-content: center; }
 .hand .hrow2 + .hrow2 { margin-top: calc(var(--cw) * -.5); }
 .hand .hrow2 .card:first-child { margin-left: 0; }
-#app.portrait .played.p0 { bottom: calc(var(--hh) + var(--gb) + 140px); }
+#app.portrait .played.p0 { bottom: calc(var(--hh) + var(--gb) + var(--lift) + 120px); }
 .played .pass { font-size: 15px; font-weight: 900; color: var(--muted); padding: 4px 14px; border-radius: 999px; background: rgba(0, 0, 0, .4); }
 
 /* pemain sendiri + tombol aksi */
-.me { position: absolute; z-index: 8; left: calc(var(--gut-l) + 8px); right: calc(var(--gut-r) + 8px); bottom: calc(var(--hh) + var(--gb) + 8px);
+.me { position: absolute; z-index: 10; left: calc(var(--gut-l) + 8px); right: calc(var(--gut-r) + 8px); bottom: calc(var(--hh) + var(--gb) + var(--lift) + 6px);
   display: flex; align-items: flex-end; gap: 10px; pointer-events: none; }
 .me > * { pointer-events: auto; }
 .seat.s0 { position: relative; flex: 0 0 auto; }

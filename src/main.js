@@ -170,7 +170,7 @@ function showRules(then) {
       <li>${tx('Bom: 4 kartu sama, mengalahkan semua kecuali roket. Roket: dua joker, mengalahkan semuanya.')}</li>
       <li>${tx('Mengikuti: jenis & jumlah kartu sama, nilai lebih tinggi. Dua pass berturut-turut = yang terakhir main memimpin lagi.')}</li></ul>
     <h3>${tx('Skor')}</h3>
-    <ul><li>${tx('Skor dasar 1 × pengali. Tiap bom/roket ×2 (3 bom = ×8). Spring / anti-spring ×2.')}</li>
+    <ul><li>${tx('Skor dasar 1 × pengali. Tiap bom/roket ×2 (3 bom = ×8). Spring ×2 hanya untuk petani yang sama sekali tidak keluar kartu. Anti-spring (Tuan Tanah cuma keluar sekali) ×2.')}</li>
       <li>${tx('Tuan Tanah menang: tiap petani bayar skor itu. Petani menang: Tuan Tanah bayar ke dua petani.')}</li>
       <li>${tx('Ranked: rating Doudizhu naik/turun mengikuti hasil dan besarnya pengali. Keluar di tengah tangan = kalah + penalti.')}</li></ul>
     <div class="rs-btns"><button class="btn primary" data-a="close" type="button">${tx('Mengerti')}</button></div>`);
@@ -541,7 +541,7 @@ function renderPlayed(v) {
       box.replaceChildren(p);
       continue;
     }
-    const els = mine.cards.map((c, i) => {
+    const els = groupSort(mine.cards).map((c, i) => {
       const e = cardEl(c, 'mini');
       e.classList.add('in');
       e.style.setProperty('--i', i);
@@ -552,17 +552,21 @@ function renderPlayed(v) {
       const t = document.createElement('span');
       t.className = 'tag';
       t.textContent = name;
-      els.push(t);
+      if (d === 1) els.unshift(t); // kursi kanan: label di sisi dalam meja
+      else els.push(t);
     }
     box.replaceChildren(...els);
   }
 }
 
 // ---------- tangan sendiri: ketuk / geser untuk memilih ----------
+/** Urut per kelompok: rank yang paling banyak dulu (333 4, 4444 5 6), lalu dari besar ke kecil. */
+function groupSort(cards) {
+  const cnt = counts(cards);
+  return [...cards].sort((a, b) => cnt[rankOf(b)] - cnt[rankOf(a)] || rankOf(b) - rankOf(a) || b - a);
+}
 function sortedHand(hand) {
-  if (settings.sort !== 'group') return sortHand(hand);
-  const cnt = counts(hand);
-  return [...hand].sort((a, b) => cnt[rankOf(b)] - cnt[rankOf(a)] || rankOf(b) - rankOf(a) || b - a);
+  return settings.sort === 'group' ? groupSort(hand) : sortHand(hand);
 }
 
 function renderHand(v) {
@@ -801,9 +805,11 @@ function renderResult(view) {
     const rows = [0, 1, 2].map((d) => {
       const k = toSeat(d), s = v.seats[k];
       return `<tr><td>${d === 0 && me >= 0 ? tx('Kamu') : esc(s?.name || '')}${s?.bot ? ' 🤖' : ''}${L.abandoned?.[k] ? ` <small>(${tx('kabur')})</small>` : ''}</td>
-        <td>${k === L.landlord ? '👑 ' + tx('Tuan Tanah') : tx('Petani')}</td><td class="${cls(L.points[k])}">${signed(L.points[k])}</td><td class="tot">${signed(v.totals[k])}</td></tr>`;
+        <td>${k === L.landlord ? '👑 ' + tx('Tuan Tanah') : `${tx('Petani')}${L.mults?.[k] ? ` ×${fmt(L.mults[k])}` : ''}`}</td><td class="${cls(L.points[k])}">${signed(L.points[k])}</td><td class="tot">${signed(v.totals[k])}</td></tr>`;
     }).join('');
-    const chips = (L.breakdown || []).map((b) => `<span>${tx(MULT_WORDS[b.k])} ×${b.x}</span>`).join('') + `<span class="tot">= ×${fmt(L.mult)}</span>`;
+    const who = (k) => (k === v.seat ? tx('Kamu') : v.seats[k]?.name || '');
+    const chips = (L.breakdown || []).map((b) => `<span>${tx(MULT_WORDS[b.k])} ×${b.x}${b.seats ? ` (${b.seats.map((k) => esc(who(k))).join(', ')})` : ''}</span>`).join('')
+      + `<span class="tot">= ×${fmt(L.mult)}</span>`;
     let rating = '';
     if (v.kind === 'ranked' && me >= 0) {
       rating = L.myRating != null ? `<p class="rs-rating ${cls(L.myRating)}">${tx('Rating')} ${signed(L.myRating)}${v.ranked?.rating != null ? ` → ${fmt(v.ranked.rating)}` : ''}</p>`

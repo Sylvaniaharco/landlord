@@ -13,7 +13,7 @@ export function newHand(seed, starter = 0, rules = RULES) {
     rules, seed: seed >>> 0, starter, phase: 'bid', redeals: 0,
     hands: null, kitty: null, landlord: -1, turn: starter,
     bid: null,
-    mult: { bid: 1, bombs: 0, rockets: 0, spring: '' },
+    mult: { bid: 1, bombs: 0, rockets: 0, spring: '', springSeats: [] },
     trick: null, // { last: { seat, cards, combo } | null, passes }
     plays: [], // semua langkah tangan ini: { seat, cards } atau { seat, pass: true }; tanda { seat:-1, trick:true } = ronde baru
     playsBy: [0, 0, 0],
@@ -165,16 +165,34 @@ export function applyAction(g, seat, a) {
   return { ok: true };
 }
 
-/** Pengali total tangan ini (dengan batas multiplierCap kalau diisi). */
-export function totalMult(g) {
+const cap = (g, m) => (g.rules.multiplierCap > 0 ? Math.min(m, g.rules.multiplierCap) : m);
+
+/** Pengali meja (tawar × bom × roket), belum termasuk spring. */
+function tableMult(g) {
   const r = g.rules;
-  let m = g.mult.bid * r.bombMult ** g.mult.bombs * r.rocketMult ** g.mult.rockets;
-  if (g.mult.spring === 'spring') m *= r.springMult;
-  if (g.mult.spring === 'anti') m *= r.antiSpringMult;
-  return r.multiplierCap > 0 ? Math.min(m, r.multiplierCap) : m;
+  return g.mult.bid * r.bombMult ** g.mult.bombs * r.rocketMult ** g.mult.rockets;
 }
 
-/** Rincian pengali untuk ditampilkan: [{ k, x }] */
+/**
+ * Pengali satu petani terhadap Tuan Tanah (dengan batas multiplierCap). Spring dihitung per orang (aturan Teddy, rules.springPerPlayer):
+ * Tuan Tanah menang → petani yang sama sekali tidak mengeluarkan kartu ×springMult, petani lain tidak.
+ * Anti-spring (petani menang, Tuan Tanah hanya keluar sekali) → berlaku ke kedua petani.
+ */
+export function seatMult(g, s) {
+  let m = tableMult(g);
+  if (g.mult.springSeats?.includes(s)) m *= g.rules.springMult;
+  if (g.mult.spring === 'anti') m *= g.rules.antiSpringMult;
+  return cap(g, m);
+}
+
+/** Pengali yang ditampilkan: selama main = pengali meja; setelah selesai = pengali terbesar antar petani. */
+export function totalMult(g) {
+  const L = g.landlord;
+  if (g.phase !== 'done' || L < 0) return cap(g, tableMult(g));
+  return Math.max(...[0, 1, 2].filter((s) => s !== L).map((s) => seatMult(g, s)));
+}
+
+/** Rincian pengali untuk ditampilkan: [{ k, x, seats? }] */
 export function multBreakdown(g) {
   const out = [];
   const b = g.bid?.acts || [];
@@ -185,28 +203,41 @@ export function multBreakdown(g) {
   }
   for (let i = 0; i < g.mult.bombs; i++) out.push({ k: 'bomb', x: g.rules.bombMult });
   for (let i = 0; i < g.mult.rockets; i++) out.push({ k: 'rocket', x: g.rules.rocketMult });
-  if (g.mult.spring === 'spring') out.push({ k: 'spring', x: g.rules.springMult });
+  if (g.mult.springSeats?.length) out.push({ k: 'spring', x: g.rules.springMult, seats: g.mult.springSeats.slice() });
   if (g.mult.spring === 'anti') out.push({ k: 'anti', x: g.rules.antiSpringMult });
   return out;
 }
 
-/** Skor: tuan tanah vs tiap petani = base x pengali. -> poin per kursi (jumlahnya 0). */
-export function scoreHand(landlord, landlordWon, mult, base = 1) {
-  const p = base * mult;
-  return [0, 1, 2].map((s) => (s === landlord ? (landlordWon ? 2 * p : -2 * p) : landlordWon ? -p : p));
+/**
+ * Skor: Tuan Tanah lawan tiap petani = base × pengali petani itu. mults = angka (sama untuk semua) atau [per kursi].
+ * -> poin per kursi (jumlahnya 0).
+ */
+export function scoreHand(landlord, landlordWon, mults, base = 1) {
+  const m = (s) => (Array.isArray(mults) ? mults[s] : mults);
+  const pts = [0, 1, 2].map((s) => (s === landlord ? 0 : (landlordWon ? -1 : 1) * base * m(s)));
+  pts[landlord] = -pts.reduce((a, b) => a + b, 0);
+  return pts;
 }
 
 function finish(g, winner) {
   const L = g.landlord;
   const landlordWon = winner === L;
   const peasants = [0, 1, 2].filter((s) => s !== L);
-  if (landlordWon && peasants.every((s) => g.playsBy[s] === 0)) g.mult.spring = 'spring';
+  const zero = peasants.filter((s) => g.playsBy[s] === 0);
+  g.mult.springSeats = [];
+  if (landlordWon && zero.length && (g.rules.springPerPlayer || zero.length === 2)) {
+    g.mult.springSeats = zero;
+    g.mult.spring = 'spring';
+  }
   if (!landlordWon && g.playsBy[L] === 1) g.mult.spring = 'anti';
-  if (g.mult.spring) pushLog(g, { k: g.mult.spring, seat: landlordWon ? L : winner });
-  const mult = totalMult(g);
+  if (g.mult.spring) pushLog(g, { k: g.mult.spring, seat: landlordWon ? L : winner, seats: g.mult.springSeats.slice() });
   g.phase = 'done';
   g.turn = -1;
-  g.result = { winner, landlordWon, mult, points: scoreHand(L, landlordWon, mult, g.rules.base), spring: g.mult.spring, breakdown: multBreakdown(g) };
+  const mults = [0, 1, 2].map((s) => (s === L ? null : seatMult(g, s)));
+  g.result = {
+    winner, landlordWon, mult: totalMult(g), mults, points: scoreHand(L, landlordWon, mults, g.rules.base),
+    spring: g.mult.spring, springSeats: g.mult.springSeats.slice(), breakdown: multBreakdown(g),
+  };
   pushLog(g, { k: 'done', seat: winner });
 }
 

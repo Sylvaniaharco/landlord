@@ -34,7 +34,7 @@ export const EN = {
   'Empat + 2 kartu, empat + 2 pasang (bukan bom).': 'Four + 2 singles, four + 2 pairs (not a bomb).',
   'Bom: 4 kartu sama, mengalahkan semua kecuali roket. Roket: dua joker, mengalahkan semuanya.': 'Bomb: four of a kind, beats everything but the rocket. Rocket: both jokers, beats everything.',
   'Mengikuti: jenis & jumlah kartu sama, nilai lebih tinggi. Dua pass berturut-turut = yang terakhir main memimpin lagi.': 'To follow: same type and card count, higher rank. Two passes in a row = the last player who played leads again.',
-  'Skor': 'Scoring', 'Skor dasar 1 × pengali. Tiap bom/roket ×2 (3 bom = ×8). Spring / anti-spring ×2.': 'Base score 1 × multiplier. Every bomb/rocket ×2 (3 bombs = ×8). Spring / anti-spring ×2.',
+  'Skor': 'Scoring', 'Skor dasar 1 × pengali. Tiap bom/roket ×2 (3 bom = ×8). Spring ×2 hanya untuk petani yang sama sekali tidak keluar kartu. Anti-spring (Tuan Tanah cuma keluar sekali) ×2.': 'Base score 1 × multiplier. Every bomb/rocket ×2 (3 bombs = ×8). Spring ×2 only for a peasant who never played a card. Anti-spring (Landlord played only once) ×2.',
   'Tuan Tanah menang: tiap petani bayar skor itu. Petani menang: Tuan Tanah bayar ke dua petani.': 'Landlord wins: each peasant pays that score. Peasants win: the Landlord pays both peasants.',
   'Ranked: rating Doudizhu naik/turun mengikuti hasil dan besarnya pengali. Keluar di tengah tangan = kalah + penalti.': 'Ranked: your Doudizhu rating moves with the result and the size of the multiplier. Leaving mid-hand = loss + penalty.',
   // peringkat
