@@ -152,7 +152,9 @@ test('Ranked: putus lama = kabur, putus sebentar tidak', () => {
   const room = R.createRanked('RNKED', 0);
   R.reserve(room, { key: 'key1key1key1', userId: 'g:1', name: 'Ani', avatar: 0 }, 0);
   R.reserve(room, { key: 'key2key2key2', userId: 'g:2', name: 'Budi', avatar: 3 }, 0);
+  R.markOnline(room, 'key1key1key1', true, 500);
   R.startRanked(room, 8, 1000, rnd());
+  R.markOnline(room, 'key2key2key2', true, 600);
   R.markOnline(room, 'key2key2key2', false, 1000 - R.ABANDON_MS);
   const online = (id) => id !== 'key2key2key2';
   runHand(room, 1000, 'normal', online);
@@ -201,3 +203,18 @@ test('Latihan bermeja koin menyimpan taruhannya (dihitung di HP)', () => {
 });
 
 const seatOfUser = (room, uid) => room.seats.findIndex((s) => s && s.userId === uid);
+
+test('Ranked: kursi dipesan tapi tidak pernah tersambung = dihitung kabur; yang tersambung tidak', () => {
+  const room = R.createRanked('RNKED', 0);
+  R.reserve(room, { key: 'key1key1key1', userId: 'g:1', name: 'Ani', avatar: 0 }, 0);
+  R.reserve(room, { key: 'key2key2key2', userId: 'g:2', name: 'Budi', avatar: 3 }, 0);
+  R.markOnline(room, 'key1key1key1', true, 500); // hanya Ani yang membuka WebSocket
+  const t0 = R.ABANDON_MS + 1000; // sudah lewat batas putus saat tangan selesai
+  R.startRanked(room, 8, t0, rnd());
+  const online = (id) => id === 'key1key1key1';
+  runHand(room, t0, 'normal', online);
+  const i1 = room.seats.findIndex((s) => s.userId === 'g:1');
+  const i2 = room.seats.findIndex((s) => s.userId === 'g:2');
+  assert.equal(room.last.abandoned[i2], true, 'tidak pernah tersambung → kabur');
+  assert.equal(room.last.abandoned[i1], false);
+});
