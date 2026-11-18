@@ -13,6 +13,7 @@ import { canShowInstall, installApp, onInstallChange } from './ui/install.js';
 import { fetchAccount, fetchTicket, fetchMyStats, fetchLeaderboard, loginUrl, logout, installErrorLog } from './ui/account.js';
 import { tx, setLang, getLang, applyStatic } from './ui/i18n.js';
 import { clientId, api, onlineConfig, RoomSession } from './net/online.js';
+import { STAKES, minEntry, normalizeWallet, coinDelta, applyDelta, isBroke, START_COINS } from './engine/wallet.js';
 import { LocalTable } from './net/local.js';
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -22,7 +23,7 @@ const signed = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n));
 const cls = (n) => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-const SET_KEY = 'ddz-set', ROOM_KEY = 'ddz-room', NAME_KEY = 'ddz-name', RULES_KEY = 'ddz-rules-seen';
+const WALLET_KEY = 'ddz-wallet', PENDING_KEY = 'ddz-pending', SET_KEY = 'ddz-set', ROOM_KEY = 'ddz-room', NAME_KEY = 'ddz-name', RULES_KEY = 'ddz-rules-seen';
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* mode privat */ } };
 const settings = { sound: true, level: DEFAULT_LEVEL, lang: 'id', sort: 'rank', ...(load(SET_KEY) || {}) };
@@ -30,6 +31,31 @@ if (!validLevel(settings.level)) settings.level = DEFAULT_LEVEL;
 setSound(settings.sound);
 setLang(settings.lang);
 const saveSettings = () => save(SET_KEY, settings);
+
+// ---------- koin meja lawan bot (di HP, aturan sama dengan Capsa/Mahjong: src/engine/wallet.js) ----------
+// Koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked. Koin di sini tidak pernah dikirim ke server.
+let wallet = normalizeWallet(load(WALLET_KEY), Date.now());
+const saveWallet = () => save(WALLET_KEY, wallet);
+saveWallet();
+/** Tambah/kurangi koin meja bot. -> perubahan yang benar-benar terjadi (saldo tidak bisa di bawah 0). */
+function payWallet(delta) {
+  wallet = normalizeWallet(wallet, Date.now());
+  const before = wallet.coins;
+  wallet = { ...wallet, coins: applyDelta(wallet.coins, delta) };
+  saveWallet();
+  return wallet.coins - before;
+}
+/** Tangan bermeja koin yang ditinggal (app ditutup / keluar) dihitung kalah — supaya tidak bisa kabur saat kalah. */
+function settleAbandoned() {
+  const pd = load(PENDING_KEY);
+  save(PENDING_KEY, null);
+  if (!pd || !(pd.loss > 0)) return 0;
+  return payWallet(-pd.loss);
+}
+const TABLES = [
+  { stake: 0, name: 'Latihan', sub: 'Tanpa koin', color: '#5b6f7f', chip: '0' },
+  ...STAKES.map((st, i) => ({ stake: st, name: `Meja ${st}`, color: ['#2c8f73', '#2d6fd8', '#b8324a'][i], chip: String(st) })),
+];
 
 // ---------- ukuran layar ----------
 function fit() {
@@ -118,9 +144,26 @@ function renderLobby() {
     `<button class="seg-b${k === settings.level ? ' on' : ''}" data-lv="${k}" type="button" aria-pressed="${k === settings.level}">${tx(LEVELS[k])}</button>`).join('');
   const rs = $('#rankedSub');
   if (account.state !== 'in') rs.textContent = tx('Masuk dengan Google dulu');
-  else if (myStats?.tier) rs.textContent = `${myStats.tier.icon} ${myStats.tier.name} · ${fmt(myStats.rating)}${myStats.placement ? ' · ' + tx('placement {n} lagi', { n: myStats.placement }) : ''}`;
-  else rs.textContent = tx('Bot mengisi kursi kosong');
-  $('#btnRanked').classList.toggle('locked', account.state !== 'in');
+  else if (myStats?.tier) rs.textContent = `${myStats.tier.icon} ${myStats.tier.name} · ${tx('rating')} ${fmt(myStats.rating)}${myStats.placement ? ' · ' + tx('placement {n} lagi', { n: myStats.placement }) : ''} · ${tx('koin = poin × meja')}`;
+  else rs.textContent = tx('koin = poin × meja · bot mengisi kursi kosong');
+  // meja lawan bot: koin HP
+  wallet = normalizeWallet(wallet, Date.now());
+  saveWallet();
+  $('#lbCoins').textContent = fmt(wallet.coins);
+  const note = $('#lbNote');
+  note.hidden = !isBroke(wallet.coins);
+  note.textContent = tx('Koin meja bot kurang dari {min}. Saldo diisi lagi jadi {start} besok jam 00.01 WIB. Sementara main di meja Latihan dulu.', { min: fmt(minEntry(STAKES[0])), start: fmt(START_COINS) });
+  const tile = (t, attr, need, sub) => `<button class="tbl${need ? ' locked' : ''}" ${attr} type="button"${need ? ' aria-disabled="true"' : ''}>
+      <span class="chip" style="--c:${t.color}"><i>${t.chip}</i></span><span><b>${tx(t.stake ? 'Meja {s}' : t.name, { s: t.stake })}</b><small>${need || sub}</small></span></button>`;
+  $('#tables').innerHTML = TABLES.map((t) => {
+    const need = t.stake > 0 && wallet.coins < minEntry(t.stake) ? tx('Butuh {n}', { n: fmt(minEntry(t.stake)) }) : '';
+    return tile(t, `data-stake="${t.stake}"`, need, t.stake ? tx('min {n}', { n: fmt(minEntry(t.stake)) }) : tx(t.sub));
+  }).join('');
+  // Ranked: koin akun. Terkunci kalau belum login atau saldo akun kurang.
+  $('#rankedTables').innerHTML = TABLES.filter((t) => t.stake > 0).map((t) => {
+    const need = account.state !== 'in' ? tx('Masuk dulu') : account.coins != null && account.coins < minEntry(t.stake) ? tx('Butuh {n}', { n: fmt(minEntry(t.stake)) }) : '';
+    return tile(t, `data-ranked="${t.stake}"`, need, tx('min {n}', { n: fmt(minEntry(t.stake)) }));
+  }).join('');
   renderAccount();
 }
 
@@ -131,8 +174,9 @@ function renderAccount() {
     box.innerHTML = `<a class="btn google" href="${loginUrl}">${GOOGLE_ICON} ${tx('Masuk dengan Google')}</a><p>${tx('Satu akun dengan Mahjong Kung2 & Capsa Kung2.')}</p>`;
   } else if (account.state === 'in') {
     const img = account.picture ? `<img src="${esc(account.picture)}" alt="" referrerpolicy="no-referrer">` : `<img src="${avatarSrc(myAvatar())}" alt="">`;
-    box.innerHTML = `<button class="btn ghost acct" id="btnAccount" type="button">${img}${esc(account.name)}${myStats?.tier ? ` · <span>${myStats.tier.icon} ${fmt(myStats.rating)}</span>` : ''}</button>
-      <p>${tx('Akun yang sama dengan Mahjong Kung2 & Capsa Kung2. Rating Doudizhu terpisah.')}</p>`;
+    const coins = account.coins != null ? ` · <span><i class="coin"></i> ${fmt(account.coins)}</span>` : '';
+    box.innerHTML = `<button class="btn ghost acct" id="btnAccount" type="button">${img}${esc(account.name)}${coins}${myStats?.tier ? ` · <span>${myStats.tier.icon} ${fmt(myStats.rating)}</span>` : ''}</button>
+      <p>${tx('Akun & koin yang sama dengan Mahjong Kung2 & Capsa Kung2 (koin akun hanya untuk Ranked). Rating Doudizhu terpisah.')}</p>`;
   }
 }
 
@@ -271,13 +315,16 @@ function openTable(kind, code, session) {
   renderSoundBtn();
 }
 
-function startPractice() {
+function startPractice(stake = 0) {
   if (T) return;
-  if (!load(RULES_KEY)) return showRules(startPractice);
+  wallet = normalizeWallet(wallet, Date.now());
+  if (stake && wallet.coins < minEntry(stake)) return toast(tx('Meja {s} butuh minimal {n} koin', { s: stake, n: fmt(minEntry(stake)) }), 3000);
+  if (!load(RULES_KEY)) return showRules(() => startPractice(stake));
   sfx('tap');
   const user = { id: 'me' + clientId().slice(0, 14), name: tx('Kamu'), avatar: myAvatar() };
   openTable('practice', '', null);
-  T.session = new LocalTable(user, settings.level, { onState, onError: onActError });
+  T.stake = stake;
+  T.session = new LocalTable(user, settings.level, { onState, onError: onActError }, stake);
 }
 
 const handlers = () => ({
@@ -333,21 +380,30 @@ async function joinOnline(raw) {
   const name = await ensureName();
   if (name) connectOnline(code, name);
 }
-async function joinRanked() {
+async function joinRanked(stake) {
   if (account.state !== 'in') return toast(tx('Masuk dengan Google dulu untuk main Ranked'), 3000);
-  if (!load(RULES_KEY)) return showRules(joinRanked);
+  if (account.coins != null && account.coins < minEntry(stake)) return toast(tx('Meja {s} butuh minimal {n} koin', { s: stake, n: fmt(minEntry(stake)) }), 3000);
+  if (!load(RULES_KEY)) return showRules(() => joinRanked(stake));
   try {
     toast(tx('Mencari meja…'), 4000);
     const ticket = await fetchTicket();
-    const { code, key } = await api('/ranked/join', { method: 'POST', body: { ticket, avatar: myAvatar() } });
+    const { code, key } = await api('/ranked/join', { method: 'POST', body: { ticket, stake, avatar: myAvatar() } });
     connectOnline(code, account.name, key, true);
   } catch (e) {
     toast(tx(e.message || 'Gagal masuk meja Ranked'), 3500);
     refreshAccount();
   }
 }
-$('#btnPractice').addEventListener('click', startPractice);
-$('#btnRanked').addEventListener('click', () => { sfx('tap'); joinRanked(); });
+$('#tables').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-stake]');
+  if (b) startPractice(Number(b.dataset.stake));
+});
+$('#rankedTables').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ranked]');
+  if (!b) return;
+  sfx('tap');
+  joinRanked(Number(b.dataset.ranked));
+});
 $('#btnCreate').addEventListener('click', () => { sfx('tap'); createOnline(); });
 $('#btnJoin').addEventListener('click', async () => {
   sfx('tap');
@@ -357,6 +413,10 @@ $('#btnJoin').addEventListener('click', async () => {
 
 function closeTable() {
   if (!T) return;
+  if (T.kind === 'practice') {
+    const lost = settleAbandoned();
+    if (lost) toast(tx('Tangan ditinggal dihitung kalah: {n} koin', { n: signed(lost) }), 3500);
+  }
   clearInterval(T.timer);
   T.session?.close?.();
   T = null;
@@ -373,7 +433,8 @@ $('#btnLeave').addEventListener('click', async () => {
   const playing = v?.status === 'playing' && v.seat >= 0;
   if (playing) {
     const msg = T.kind === 'ranked' ? tx('Tangan ini masih jalan. Keluar sekarang dihitung kabur: kalah + penalti rating, kursimu dimainkan bot.')
-      : T.kind === 'practice' ? tx('Tangan latihan ini akan dibuang.') : tx('Kursimu akan dimainkan bot sampai tangan selesai.');
+      : T.kind === 'practice' ? (load(PENDING_KEY) ? tx('Tangan ini masih jalan. Keluar sekarang dihitung kalah: −{n} koin.', { n: fmt(load(PENDING_KEY).loss) }) : tx('Tangan latihan ini akan dibuang.'))
+        : tx('Kursimu akan dimainkan bot sampai tangan selesai.');
     if (!(await ask(tx('Keluar dari meja?'), msg, tx('Keluar')))) return;
   }
   if (T.kind !== 'practice') T.session?.close(true);
@@ -394,7 +455,27 @@ function onState(v, serverNow) {
   if (serverNow) T.offset = serverNow - Date.now();
   T.view = v;
   T.seat = Math.max(0, v.seat);
+  if (T.kind === 'practice') practiceCoins(v);
   render(v);
+}
+
+/**
+ * Meja bot bermeja koin: selama tangan jalan (Tuan Tanah sudah dipilih) simpan "kalah kalau ditinggal" di HP;
+ * saat selesai bayar poin × taruhan sekali per tangan (sebelum layar hasil, supaya menutup app tidak membatalkan).
+ */
+function practiceCoins(v) {
+  const g = v.game;
+  if (!v.stake || !g) return;
+  if (v.status === 'result' && v.last) {
+    if (T.paid?.round === v.round) return;
+    save(PENDING_KEY, null);
+    T.paid = { round: v.round, delta: payWallet(coinDelta(v.last.points[v.seat], v.stake)) };
+    return;
+  }
+  if (g.phase === 'play') {
+    const mult = Math.max(1, g.mult || 1);
+    save(PENDING_KEY, { loss: coinDelta((g.landlord === v.seat ? 2 : 1) * mult * (g.rules?.base || 1), v.stake), round: v.round });
+  }
 }
 
 /** Pseudo-state game untuk bot.hints() dari tampilan sendiri (tangan lawan hanya jumlahnya — bot tidak membaca isinya). */
@@ -409,8 +490,8 @@ function pseudoGame(v) {
 
 function render(v) {
   const g = v.game;
-  const info = T.kind === 'practice' ? `<b>${tx('Latihan')}</b> · ${tx('bot')} ${tx(LEVELS[v.level])}`
-    : T.kind === 'ranked' ? `<b>Ranked</b>${v.ranked?.rating != null ? ` · ${tx('rating')} ${fmt(v.ranked.rating)}` : ''}`
+  const info = T.kind === 'practice' ? `<b>${v.stake ? tx('Meja {s}', { s: v.stake }) : tx('Latihan')}</b> · ${tx('bot')} ${tx(LEVELS[v.level])}`
+    : T.kind === 'ranked' ? `<b>Ranked${v.stake ? ` ${v.stake}` : ''}</b>${v.ranked?.rating != null ? ` · ${tx('rating')} ${fmt(v.ranked.rating)}` : ''}`
       : `${tx('Meja')} <b>${esc(v.code)}</b> · ${tx('bareng teman')}`;
   $('#tbInfo').innerHTML = `${info}${v.round ? `<br>${tx('Tangan {n}', { n: v.round })}` : ''}`;
   applyStatic($('#table'));
@@ -437,7 +518,7 @@ function renderSeats(v) {
     const k = toSeat(d), s = v.seats[k], el = seatEl(d);
     if (!el.dataset.built) {
       el.innerHTML = `<div class="ava"><span class="ring"></span><svg class="crown"><use href="#crown"/></svg><img alt="" draggable="false"></div>
-        <div class="nm"><b></b><span class="role"></span><span class="tot"></span><span class="flag"></span></div>${d ? '<div class="stack"></div>' : ''}<div class="say"></div>`;
+        <div class="nm"><b></b><span class="role"></span><span class="tot"></span><span class="cn"></span><span class="flag"></span></div>${d ? '<div class="stack"></div>' : ''}<div class="say"></div>`;
       el.dataset.built = '1';
     }
     if (!s) {
@@ -458,6 +539,9 @@ function renderSeats(v) {
     const totEl = $('.tot', el);
     totEl.textContent = v.status === 'lobby' ? '' : `${tx('Total')} ${signed(tot)}`;
     totEl.className = 'tot ' + cls(tot);
+    // saldo koin sendiri: koin akun (Ranked) atau koin meja bot (HP)
+    const myCoins = d === 0 && v.stake ? (v.kind === 'ranked' ? v.ranked?.coins : v.kind === 'practice' ? wallet.coins : null) : null;
+    $('.cn', el).innerHTML = myCoins != null ? `<i class="coin"></i> ${fmt(myCoins)}` : '';
     $('.flag', el).textContent = s.left ? tx('Keluar · dimainkan bot') : !s.online ? tx('Putus · dimainkan bot') : s.auto ? tx('Main otomatis') : '';
     el.classList.toggle('off', !s.bot && (!s.online || s.left));
     el.classList.toggle('turn', !!g && v.status === 'playing' && g.turn === k);
@@ -827,8 +911,12 @@ function renderResult(view) {
     const lastPlay = fin ? `<div class="rs-last"><span>${tx('Keluar terakhir')}: <b>${esc(who(fin.seat))}</b>${fin.combo ? ` · ${tx(TYPE_NAMES[fin.combo.type])}` : ''}</span>${miniRow(fin.cards)}</div>` : '';
     let rating = '';
     if (v.kind === 'ranked' && me >= 0) {
-      rating = L.myRating != null ? `<p class="rs-rating ${cls(L.myRating)}">${tx('Rating')} ${signed(L.myRating)}${v.ranked?.rating != null ? ` → ${fmt(v.ranked.rating)}` : ''}</p>`
-        : L.settled ? '' : `<p class="rs-rating">${tx('Menyimpan rating…')}</p>`;
+      const parts = [];
+      if (L.myRating != null) parts.push(`<span class="${cls(L.myRating)}">${tx('Rating')} ${signed(L.myRating)}${v.ranked?.rating != null ? ` → ${fmt(v.ranked.rating)}` : ''}</span>`);
+      if (L.myCoins != null && L.settled) parts.push(`<span class="${cls(L.myCoins)}"><i class="coin"></i> ${signed(L.myCoins)}${v.ranked?.coins != null ? ` → ${fmt(v.ranked.coins)}` : ''}</span>`);
+      rating = parts.length ? `<p class="rs-rating">${parts.join(' · ')}</p>` : L.settled ? '' : `<p class="rs-rating">${tx('Menyimpan rating…')}</p>`;
+    } else if (v.kind === 'practice' && v.stake && T.paid?.round === v.round) {
+      rating = `<p class="rs-rating ${cls(T.paid.delta)}"><i class="coin"></i> ${signed(T.paid.delta)} → ${fmt(wallet.coins)} <small>(${tx('koin meja bot')})</small></p>`;
     }
     let btns = `<button class="btn" data-r="peek" type="button">${tx('Lihat meja')}</button><button class="btn" data-r="leave" type="button">${tx('Keluar')}</button>`;
     if (v.kind === 'ranked') btns += `<span class="note" id="rsNext"></span>`;
@@ -865,7 +953,13 @@ $('#result').addEventListener('click', (e) => {
     return;
   }
   sfx('tap');
-  if (r === 'next') send({ t: 'next' });
+  if (r === 'next') {
+    if (T.kind === 'practice' && T.stake && wallet.coins < minEntry(T.stake)) {
+      toast(tx('Koin meja bot kurang untuk meja {s}', { s: T.stake }), 3000);
+      return closeTable();
+    }
+    send({ t: 'next' });
+  }
   if (r === 'leave') { if (T.kind !== 'practice') T.session?.close(true); closeTable(); }
   if (r === 'peek') {
     $('#result').classList.add('peek');
@@ -1010,6 +1104,10 @@ async function checkUpdate() {
 }
 
 // ---------- mulai ----------
+{
+  const lost = settleAbandoned();
+  if (lost) setTimeout(() => toast(tx('Tangan ditinggal dihitung kalah: {n} koin', { n: signed(lost) }), 4000), 600);
+}
 fit();
 renderEmblem();
 renderLobby();

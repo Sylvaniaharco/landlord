@@ -10,9 +10,10 @@ const randomKey = () => [...crypto.getRandomValues(new Uint8Array(24))].map((x) 
 export class DdzLobby extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
-    this.state = { open: '', active: {} }; // open: kode meja yang masih menerima pemain; active: id akun -> kode meja
+    this.state = { open: {}, active: {} }; // open: taruhan -> kode meja yang masih menerima pemain; active: id akun -> kode meja
     ctx.blockConcurrencyWhile(async () => {
       this.state = (await ctx.storage.get('state')) || this.state;
+      if (!this.state.open || typeof this.state.open !== 'object') this.state.open = {}; // simpanan versi lama (satu meja tanpa taruhan)
     });
   }
 
@@ -20,8 +21,8 @@ export class DdzLobby extends DurableObject {
     return this.env.ROOMS.get(this.env.ROOMS.idFromName(code));
   }
 
-  /** user = { userId, name, avatar, rating } (sudah diverifikasi server akun). -> { ok, code, key } | { ok:false, error } */
-  async assign(user) {
+  /** stake = 5/10/20 (koin akun per poin). user = { userId, name, avatar, rating, coins } (sudah diverifikasi). -> { ok, code, key } | { ok:false, error } */
+  async assign(stake, user) {
     const st = this.state;
     const key = randomKey();
     try {
@@ -36,19 +37,20 @@ export class DdzLobby extends DurableObject {
       }
       let lastError = 'Gagal mencari meja';
       for (let i = 0; i < 3; i++) {
-        let code = st.open;
+        let code = st.open[stake];
         if (!code) {
           code = randomCode();
-          if (!(await this.room(code).initRanked(code)).ok) continue;
-          st.open = code;
+          if (!(await this.room(code).initRanked(code, stake)).ok) continue;
+          st.open[stake] = code;
         }
         const res = await this.room(code).reserve({ ...user, key });
-        if (!res.ok || !res.joinable) st.open = '';
+        if (!res.ok || !res.joinable) delete st.open[stake];
         if (res.ok) {
           st.active[user.userId] = code;
           return { ok: true, code, key: res.key };
         }
         lastError = res.error || lastError;
+        if (/Koin/.test(lastError)) break; // saldo kurang: meja baru pun akan menolak
       }
       return { ok: false, error: lastError };
     } finally {

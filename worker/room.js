@@ -39,9 +39,9 @@ export class DdzRoom extends DurableObject {
   }
 
   // ---------- Ranked: dipanggil DdzLobby setelah akun diverifikasi ----------
-  async initRanked(code) {
+  async initRanked(code, stake) {
     if (this.room) return { ok: false };
-    this.room = R.createRanked(code, Date.now());
+    this.room = R.createRanked(code, Date.now(), stake);
     await this.save();
     await this.ctx.storage.setAlarm(Date.now() + 65000);
     return { ok: true };
@@ -167,6 +167,8 @@ export class DdzRoom extends DurableObject {
       console.error('settle gagal', r.code, r.last.round, String(e?.message || e));
       if (r.last.tries < SETTLE_TRIES) return;
     }
+    // ditolak atau gagal terus: tidak ada rating/koin yang berpindah di tangan ini
+    if (r.last.coins) r.last.coins = [0, 0, 0];
     r.last.settled = true;
     r.last.failed = true;
   }

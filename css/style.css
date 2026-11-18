@@ -512,3 +512,7 @@ button { font: inherit; color: inherit; }
 .rs-cards .card { margin-right: -8px; box-shadow: inset 0 0 0 1px rgba(60, 40, 10, .35); }
 .rs-last { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 6px; font-size: 13px; }
 .rs-last .rs-cards { margin-top: 0; --mw: 26px; }
+
+.nm .cn { display: block; font-size: 12px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.nm .cn:empty { display: none; }
+.rs-rating span + span { margin-left: 2px; }
