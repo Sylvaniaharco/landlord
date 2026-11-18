@@ -9,6 +9,7 @@ import { ROOM_CODE } from './engine/room.js';
 import { clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
 import { sfx, setSound } from './ui/sfx.js';
+import { initMusic, paintMusic } from './ui/music.js';
 import { canShowInstall, installApp, onInstallChange } from './ui/install.js';
 import { fetchAccount, fetchTicket, fetchMyStats, fetchLeaderboard, loginUrl, logout, installErrorLog } from './ui/account.js';
 import { tx, setLang, getLang, applyStatic } from './ui/i18n.js';
@@ -134,6 +135,7 @@ function renderLobby() {
   const sb = $('#btnSound');
   sb.textContent = settings.sound ? tx('Suara: nyala') : tx('Suara: mati');
   sb.setAttribute('aria-pressed', String(settings.sound));
+  paintMusic();
   $('#btnLang').textContent = getLang() === 'en' ? 'ID' : 'EN';
   $('#btnLang').title = getLang() === 'en' ? 'Bahasa Indonesia' : 'English';
   $('#btnInstall').hidden = !canShowInstall();
@@ -1104,6 +1106,8 @@ async function checkUpdate() {
 }
 
 // ---------- mulai ----------
+// musik latar: sama dengan Mahjong Kung2 (src/ui/music.js), mulai setelah sentuhan pertama
+initMusic([$('#btnMusic'), $('#btnMusic2')], { label: (on) => tx(on ? 'Musik: nyala' : 'Musik: mati') });
 {
   const lost = settleAbandoned();
   if (lost) setTimeout(() => toast(tx('Tangan ditinggal dihitung kalah: {n} koin', { n: signed(lost) }), 4000), 600);
