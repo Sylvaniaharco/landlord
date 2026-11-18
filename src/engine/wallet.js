@@ -1,8 +1,11 @@
-// Koin (salinan src/engine/wallet.js repo capsa) — ikut sistem Mahjong Kung2 (worker/coins.js + src/engine/ranked.js di repo games-mahjong0hk):
-// saldo awal 1000; meja 5 / 10 / 20 koin per poin; saldo minimal masuk 100 / 5.000 / 10.000;
+// Koin (asal: src/engine/wallet.js repo capsa) — ikut sistem Mahjong Kung2 (worker/coins.js + src/engine/ranked.js di repo games-mahjong0hk):
+// saldo awal 1000; saldo minimal masuk 100 / 5.000 / 10.000 (tingkat meja sama dengan Mahjong & Capsa).
+// Bedanya: taruhan Doudizhu 25 / 50 / 100 koin per poin (permintaan Teddy, 5 terlalu kecil). Harus sama dengan DDZ_STAKES di
+// repo games-mahjong0hk (worker/doudizhu.js), kalau tidak server akun menolak hasil tangan Ranked.
 // saldo tidak bisa di bawah 0; kalau saldo kurang dari minimal meja termurah, direset ke 1000 jam 00:01 WIB berikutnya.
-export const STAKES = [5, 10, 20];
-export const STAKE_MIN = { 5: 100, 10: 5000, 20: 10000 };
+export const STAKES = [25, 50, 100];
+// 5/10/20 = taruhan lama: meja Ranked yang masih jalan saat ganti versi tetap punya saldo minimal (tidak semua pemain terlempar)
+export const STAKE_MIN = { 25: 100, 50: 5000, 100: 10000, 5: 100, 10: 5000, 20: 10000 };
 export const minEntry = (stake) => STAKE_MIN[stake] ?? Infinity;
 export const START_COINS = 1000;
 const WIB_MS = 7 * 3600e3;

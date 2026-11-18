@@ -46,7 +46,7 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   `seat.id` (id HP / kunci kursi Ranked) dan `seat.userId` **tidak pernah** masuk `viewFor`.
 - Ranked: hasil tiap tangan → `settlePayload` → `env.MAHJONG.settle` (aman diulang; gagal → coba lagi lewat alarm). Bentuk payload harus cocok
   dengan `cleanDdzSettle` di repo games-mahjong0hk (`worker/doudizhu.js`). Rumus rating & koin ada di sana, bukan di sini.
-- **Dua saldo** (pola Capsa): koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked — meja `room.ranked.stake` 5/10/20,
+- **Dua saldo** (pola Capsa): koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked — meja `room.ranked.stake` 25/50/100 (`STAKES` di `src/engine/wallet.js` = `DDZ_STAKES` di repo Mahjong),
   `DdzLobby.assign(stake, user)` antre per meja, `reserve`/`nextRanked` cek saldo minimal (`src/engine/wallet.js`), angka pasti dari server akun
   (`applySettle`). Koin meja bot (`ddz-wallet` di localStorage, tidak bisa dipercaya) hanya untuk mode lawan bot: dibayar di `practiceCoins`
   (`src/main.js`), tangan yang ditinggal dihitung kalah lewat `ddz-pending`. Koin akun **tidak boleh** berubah dari permainan lawan bot.
