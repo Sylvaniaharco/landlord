@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ikon Doudizhu Kung2: kipas 3 kartu (2♠, joker merah, A♥) + mahkota Tuan Tanah + tulisan emas. PNG dibuat scripts/icons.cjs. -->
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#b8432f"/><stop offset="1" stop-color="#4c0f0e"/></radialGradient>
+    <linearGradient id="goldline" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#e9b43a"/><stop offset="1" stop-color="#9a6410"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbd0"/><stop offset=".42" stop-color="#ffd54a"/><stop offset=".75" stop-color="#f3a51b"/><stop offset="1" stop-color="#c76a0a"/></linearGradient>
+    <linearGradient id="ivory" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf6"/><stop offset="1" stop-color="#efe5cc"/></linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000" flood-opacity=".45"/></filter>
+  </defs>
+  <g id="art">
+    <g filter="url(#sh)">
+      <g transform="rotate(-20 256 400)">
+        <rect x="150" y="150" width="150" height="210" rx="16" fill="url(#ivory)" stroke="#7a5a2a" stroke-opacity=".35" stroke-width="2"/>
+        <text x="166" y="200" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="46" fill="#18212b">2</text>
+        <path transform="translate(220 255) scale(3.1)" fill="#18212b" d="M12 1.5C8.5 6.5 2.5 9.3 2.5 14.2a4.7 4.7 0 0 0 8.3 3c-.3 2-1.1 3.8-2.3 5.3h7c-1.2-1.5-2-3.3-2.3-5.3a4.7 4.7 0 0 0 8.3-3C21.5 9.3 15.5 6.5 12 1.5Z"/>
+      </g>
+      <g transform="rotate(20 256 400)">
+        <rect x="212" y="150" width="150" height="210" rx="16" fill="url(#ivory)" stroke="#7a5a2a" stroke-opacity=".35" stroke-width="2"/>
+        <text x="228" y="200" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="46" fill="#cf1f2c">A</text>
+        <path transform="translate(282 255) scale(3.1)" fill="#cf1f2c" d="M12 22C5.2 16.3 2 12.3 2 8.2A5.3 5.3 0 0 1 12 5.8 5.3 5.3 0 0 1 22 8.2C22 12.3 18.8 16.3 12 22Z"/>
+      </g>
+      <g>
+        <rect x="181" y="130" width="150" height="214" rx="16" fill="#fff3d8" stroke="#b8862b" stroke-width="4"/>
+        <text x="200" y="176" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="26" fill="#d8281f" letter-spacing="1">J</text>
+        <text x="200" y="202" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="26" fill="#d8281f">O</text>
+        <text x="200" y="228" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="26" fill="#d8281f">K</text>
+        <text x="200" y="254" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="26" fill="#d8281f">E</text>
+        <text x="200" y="280" font-family="Arial Narrow, Arial, sans-serif" font-weight="900" font-size="26" fill="#d8281f">R</text>
+        <path transform="translate(256 262)" fill="#d8281f" d="M0-58 17-17 61-17 25 9 39 52 0 26-39 52-25 9-61-17-17-17Z"/>
+      </g>
+    </g>
+    <!-- mahkota Tuan Tanah -->
+    <g transform="translate(256 92)" filter="url(#sh)">
+      <path fill="url(#gold)" stroke="#5a2a05" stroke-width="5" stroke-linejoin="round" d="M-78 34-92-34-44 0 0-52 44 0 92-34 78 34Z"/>
+      <rect x="-80" y="34" width="160" height="20" rx="6" fill="url(#gold)" stroke="#5a2a05" stroke-width="5"/>
+      <circle cx="0" cy="-52" r="9" fill="#d8281f" stroke="#5a2a05" stroke-width="4"/>
+    </g>
+    <!-- tulisan -->
+    <g font-family="Georgia, 'DejaVu Serif', serif" font-weight="900" text-anchor="middle" stroke="#4a1405" stroke-width="10" paint-order="stroke" stroke-linejoin="round">
+      <text x="256" y="436" font-size="66" fill="url(#gold)" letter-spacing="2">DOUDIZHU</text>
+      <text x="256" y="484" font-size="38" fill="url(#gold)" letter-spacing="6">KUNG2</text>
+    </g>
+  </g>
+</svg>
