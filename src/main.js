@@ -300,6 +300,7 @@ function connectOnline(code, name, id = clientId(), ranked = false) {
 }
 
 async function ensureName() {
+  await accountReady; // nama akun Google dipakai kalau sudah login
   const known = account.state === 'in' ? account.name : load(NAME_KEY);
   if (known) return known;
   const typed = await askText(tx('Nama kamu'), tx('Nama ini yang dilihat teman di meja.'), { value: `${tx('Tamu')} ${100 + Math.floor(Math.random() * 900)}` });
@@ -992,18 +993,20 @@ fit();
 renderEmblem();
 renderLobby();
 show('lobby');
+// link meja dibuka saat game sudah terbuka (hanya #room=… yang berubah): gabung tanpa muat ulang
+addEventListener('hashchange', () => { if (onlineOn && /^#room=/.test(location.hash)) resumeOnline(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !T) { renderLobby(); checkUpdate(); refreshAccount(); } });
 installErrorLog(() => bootVersion);
-{
-  const justLoggedIn = new URLSearchParams(location.search).get('login') === 'ok';
-  if (justLoggedIn) history.replaceState(null, '', location.pathname);
-  refreshAccount().then((a) => {
-    if (justLoggedIn) toast(a.state === 'in' ? tx('Masuk sebagai {name}', { name: a.name }) : tx('Login belum berhasil — coba lagi'), 3000);
-  });
-}
-onlineConfig().then((cfg) => {
+const justLoggedIn = new URLSearchParams(location.search).get('login') === 'ok';
+if (justLoggedIn) history.replaceState(null, '', location.pathname + location.hash);
+const accountReady = refreshAccount().then((a) => {
+  if (justLoggedIn) toast(a.state === 'in' ? tx('Masuk sebagai {name}', { name: a.name }) : tx('Login belum berhasil — coba lagi'), 3000);
+  return a;
+});
+onlineConfig().then(async (cfg) => {
   onlineOn = cfg.online;
   rankedOn = cfg.ranked;
   if (!T) renderLobby();
+  await accountReady;
   if (cfg.online) resumeOnline();
 });
