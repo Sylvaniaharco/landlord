@@ -497,3 +497,18 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .card.dealt, .played .card.in, .banner, .toast, .mult.pop, .timer.low, .fx *, #table.shake, .rs-panel { animation: none !important; }
 }
+
+/* sisa kartu lawan setelah tangan selesai (di bawah kursinya) & kartu mini di panel hasil */
+.leftover { position: absolute; z-index: 4; top: calc(64px + clamp(40px, calc(var(--vh) * 12), 60px) + 10px); display: flex; flex-wrap: wrap; align-items: center;
+  max-width: 42%; row-gap: 3px; --mw: min(calc(var(--vw) * 3), calc(var(--vh) * 6.4), 38px); pointer-events: none; }
+.leftover:empty { display: none; }
+.leftover small { flex-basis: 100%; font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+.leftover .card { margin-right: calc(var(--mw) * -.42); }
+.leftover.l1 { right: calc(var(--gut-r) + 8px); justify-content: flex-end; }
+.leftover.l1 small { text-align: right; }
+.leftover.l2 { left: calc(var(--gut-l) + 8px); }
+#app.portrait .leftover { top: calc(112px + clamp(40px, calc(var(--vw) * 12), 60px) + 10px); max-width: 48%; }
+.rs-cards { display: flex; flex-wrap: wrap; row-gap: 2px; margin-top: 3px; --mw: 22px; }
+.rs-cards .card { margin-right: -8px; box-shadow: inset 0 0 0 1px rgba(60, 40, 10, .35); }
+.rs-last { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 6px; font-size: 13px; }
+.rs-last .rs-cards { margin-top: 0; --mw: 26px; }
