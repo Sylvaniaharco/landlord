@@ -70,6 +70,19 @@ test('bot Jago (Monte Carlo): langkahnya sah dan tidak mengintip tangan lawan', 
   // kekuatannya diukur terpisah (butuh ratusan tangan, terlalu lama untuk CI): node scripts/strength.mjs
 });
 
+test('petani tidak menimpa langkah temannya sendiri (semua level)', () => {
+  // tuan tanah = kursi 0. Urutan: 0 memimpin 3 → 1 pass → 2 (teman kursi 1) keluar J → 0 pass → giliran kursi 1.
+  const g = fixed(['K K Q Q 9 9 7 5 4 3', 'A A 10 10 8 6 5 4 3 3', '2 2 J J 9 8 7 6 5 4']);
+  const pick = (seat, rank) => g.hands[seat].find((c) => c >> 2 === rank);
+  applyAction(g, 0, { t: 'play', cards: [pick(0, 0)] });
+  applyAction(g, 1, { t: 'pass' });
+  applyAction(g, 2, { t: 'play', cards: [pick(2, 8)] });
+  applyAction(g, 0, { t: 'pass' });
+  assert.equal(g.turn, 1);
+  assert.equal(g.trick.last.seat, 2);
+  for (const lv of ['normal', 'hard', 'expert']) assert.equal(botAction(g, 1, lv, r).t, 'pass', `level ${lv} menimpa temannya`);
+});
+
 test('bot tidak mengintip: tangan lawan ditukar (jumlah sama) → keputusan sama', () => {
   for (let i = 0; i < 60; i++) {
     const g = newHand(300 + i, i % 3);
