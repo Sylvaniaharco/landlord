@@ -30,6 +30,7 @@ Saudara dari games-mahjong0hk (Mahjong Kung2) dan capsa (Capsa Kung2) — pola, 
 ```bash
 npm test            # node --test test/*.test.js (±40 tes, termasuk 600 tangan bot vs bot)
 npm run sim         # 3000 tangan bot vs bot + statistik
+npm run strength    # adu kekuatan dua level bot (mis. -- expert hard 150)
 npm run dev         # static :8080 (Latihan saja)
 npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat README
 ```
@@ -51,7 +52,13 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   (`applySettle`). Koin meja bot (`ddz-wallet` di localStorage, tidak bisa dipercaya) hanya untuk mode lawan bot: dibayar di `practiceCoins`
   (`src/main.js`), tangan yang ditinggal dihitung kalah lewat `ddz-pending`. Koin akun **tidak boleh** berubah dari permainan lawan bot.
 - Bot (`bot.js`) hanya boleh membaca tangan sendiri + info publik (jumlah kartu, kartu keluar). Tes `bot tidak mengintip` menjaga ini.
-  Bot di server: Ranked = Sulit, meja teman = level pilihan pembuat meja, kursi yang keluar/putus = Sedang/Sulit.
+  Bot di server: Ranked ikut taruhannya (`rankedLevel` di `src/engine/room.js`: meja 50 & 100 = **Jago**, meja 25 & meja lama = Sedang),
+  meja teman = level pilihan pembuat meja, kursi yang keluar/putus = Sedang.
+- Level **Jago** (`expert`) = heuristik Sulit menyaring 6 langkah terbaik, lalu Monte Carlo: 16 dunia diundi dari kartu yang belum
+  terlihat (bukan dari tangan lawan — jangan sampai bocor), tiap dunia dimainkan sampai habis dengan bot Sulit, dipilih yang paling
+  sering menang. Seed dunia dari `g.seed` + jumlah langkah (bukan dari `rnd` pemanggil) supaya keputusan tetap bisa diulang.
+  ±17 ms/keputusan. Ubah bot → ukur lagi dengan `npm run strength` (mis. `node scripts/strength.mjs expert hard 150`), jangan
+  menaruh adu kekuatan di `npm test` (ratusan tangan, terlalu lama & berisik).
 - Teks UI bahasa Indonesia lewat `tx('...')` (atau `data-t` di HTML); terjemahan English di `src/ui/lang-en.js`, dicek `test/i18n.test.js`.
 - Akun: `src/ui/account.js` memanggil API Mahjong dari origin yang sama (`/me`, `/config`, `/auth/logout`, `/auth/ticket`, `/errors` mode
   `doudizhu`, `/doudizhu/leaderboard`, `/doudizhu/me`). Login `?next=doudizhu`. Aktif hanya kalau dibuka dari `/games/doudizhu/`.

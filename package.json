@@ -9,6 +9,7 @@
     "test": "node --test test/*.test.js",
     "sim": "node scripts/simulate.mjs 3000",
     "dev": "python3 -m http.server 8080",
-    "dev:online": "npm run build && npx wrangler dev"
+    "dev:online": "npm run build && npx wrangler dev",
+    "strength": "node scripts/strength.mjs"
   }
 }
