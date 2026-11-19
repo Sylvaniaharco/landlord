@@ -100,7 +100,9 @@ kursinya (tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar) — dites
 - **Sedang:** cara yang sama tanpa hitung kartu & kerja sama yang lebih longgar. **Mudah:** kartu terkecil, sedikit acak.
 - **Jago:** heuristik Sulit untuk menyaring 6 langkah terbaik, lalu Monte Carlo — 16 kemungkinan pembagian kartu lawan diundi dari
   kartu yang belum terlihat (tetap tidak mengintip), tiap langkah dimainkan sampai tangan habis dengan bot Sulit, yang paling sering
-  menang dipakai. ±17 ms per keputusan (paling lama ±95 ms). Dipakai di meja Ranked 50 & 100 dan bisa dipilih di meja lawan bot/teman.
+  menang dipakai. Pilihan heuristik dapat bonus (`prior`) dan pass dapat bonus tambahan kalau teman yang terakhir main (`mate`),
+  supaya pencarian tidak menyimpang hanya karena hasilnya seri — tanpa itu petani menimpa langkah temannya 35% (sekarang 6%).
+  ±17 ms per keputusan (paling lama ±95 ms). Dipakai di meja Ranked 50 & 100 dan bisa dipilih di meja lawan bot/teman.
 - Simulasi 3000 tangan (`npm run sim`, ±0,8 ms/tangan): Tuan Tanah menang ±60%, ±0,4 bom/tangan; poin rata-rata Mudah −2,7 / Sedang
   +0,4 / Sulit +2,3 per tangan. Adu level: `npm run strength -- jago hard 150` → Jago **+0,6 … +1,1 poin/tangan** di atas Sulit
   (Sulit sendiri +0,44 di atas Sedang).

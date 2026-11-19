@@ -182,33 +182,41 @@ function chooseMove(g, seat, level, rnd) {
     scored.push({ m, v });
     if (v < bestV) { bestV = v; best = m; }
   }
+
+  // ikut atau pass? (kalau memimpin, wajib keluar kartu)
+  let heur = best;
+  if (!lead) {
+    let passV = costOf(cnt);
+    if (fromMate) {
+      // jangan merebut dari teman; kecuali teman masih banyak kartu dan tuan tanah hampir habis (di Sulit tetap pass: teman pegang giliran)
+      passV -= hard ? 2.5 : 1.8;
+    } else {
+      passV += 0.6; // ikut = menjaga tempo
+      if (lastOppCount <= 2 || threat <= 2) passV += 3; // lawan hampir habis: wajib dihadang
+      else if (threat <= 4) passV += 1;
+      // petani setelah tuan tanah, dan teman sudah hampir habis & main setelah saya: biarkan teman yang menjawab kalau saya lemah
+      if (hard && !I.lord && I.mate === (seat + 1) % 3 && I.n[I.mate] <= 2 && bestV > passV - 0.2) passV -= 0.8;
+    }
+    if (!hard && rnd() < 0.04) return null; // Sedang sesekali "lupa"
+    heur = bestV <= passV ? best : null;
+  }
+
+  // Jago: uji beberapa langkah teratas + pilihan heuristik di banyak kemungkinan kartu lawan
   if (level === 'expert') {
-    const pick = searchMove(g, seat, scored, lead);
+    const pick = searchMove(g, seat, scored, lead, heur, fromMate);
     if (pick !== undefined) return pick;
   }
-  if (lead) return best;
-
-  // ikut atau pass?
-  let passV = costOf(cnt);
-  if (fromMate) {
-    // jangan merebut dari teman; kecuali teman masih banyak kartu dan tuan tanah hampir habis (di Sulit tetap pass: teman pegang giliran)
-    passV -= hard ? 2.5 : 1.8;
-  } else {
-    passV += 0.6; // ikut = menjaga tempo
-    if (lastOppCount <= 2 || threat <= 2) passV += 3; // lawan hampir habis: wajib dihadang
-    else if (threat <= 4) passV += 1;
-    // petani setelah tuan tanah, dan teman sudah hampir habis & main setelah saya: biarkan teman yang menjawab kalau saya lemah
-    if (hard && !I.lord && I.mate === (seat + 1) % 3 && I.n[I.mate] <= 2 && bestV > passV - 0.2) passV -= 0.8;
-  }
-  if (!hard && rnd() < 0.04) return null; // Sedang sesekali "lupa"
-  return bestV <= passV ? best : null;
+  return heur;
 }
 
 // ---------- Jago: coba langkah di banyak kemungkinan pembagian kartu lawan (Monte Carlo) ----------
 // Kartu lawan tidak diintip: dunia diundi dari kartu yang BELUM terlihat (54 kartu - tangan sendiri - yang sudah keluar),
 // dibagi sesuai jumlah kartu tiap lawan. Tiap dunia dimainkan sampai habis dengan bot Sulit, lalu poin kursi sendiri dirata-rata.
-// worlds/cands dipilih dari uji kekuatan (scripts/simulate.mjs): 16 dunia × 6 langkah teratas = +1,1 poin/tangan di atas Sulit.
-const EXPERT = { worlds: 16, cands: 6, maxUnseen: 34, steps: 220 };
+// Angka-angkanya dari uji kekuatan (scripts/strength.mjs): 16 dunia × 6 langkah teratas ≈ +1,0 … +1,2 poin/tangan di atas Sulit.
+// prior: bonus untuk pilihan heuristik — pencarian hanya menyimpang kalau untungnya nyata (1 dunia = 0,125, jadi 0,2 > sekadar seri).
+// mate: bonus tambahan untuk pass waktu teman yang terakhir main; Monte Carlo "tahu" kartu di dunia undiannya, jadi tanpa ini
+// petani suka menimpa langkah temannya sendiri (diukur: 35% → 6%, dan main jadi lebih kuat).
+const EXPERT = { worlds: 16, cands: 6, maxUnseen: 34, steps: 220, prior: 0.2, mate: 0.3 };
 
 function cloneGame(g, hands) {
   const t = g.trick;
@@ -270,10 +278,11 @@ function playout(g, seat, hands, a, rnd) {
  * Pilih langkah dengan rata-rata poin terbaik. `scored` = semua langkah sah + nilai heuristiknya (kecil = bagus).
  * -> langkah terpilih, null = pass, atau undefined kalau pencarian dilewati (pakai heuristik saja).
  */
-function searchMove(g, seat, scored, lead) {
+function searchMove(g, seat, scored, lead, heur, fromMate) {
   const pool = unseen(g, seat);
   if (!pool.length || pool.length > EXPERT.maxUnseen) return undefined; // awal tangan: terlalu banyak kemungkinan, tidak berguna
   const cands = scored.slice().sort((a, b) => a.v - b.v).slice(0, EXPERT.cands).map((x) => x.m);
+  if (heur && !cands.includes(heur)) cands.push(heur);
   if (!cands.length) return undefined;
   if (cands.length === 1 && lead) return cands[0];
   // seed tetap (bukan dari rnd pemanggil) supaya keputusan bisa diulang persis dan tiap langkah diuji di dunia yang sama
@@ -291,7 +300,7 @@ function searchMove(g, seat, scored, lead) {
       n++;
     }
     if (!n) continue;
-    const v = sum / n;
+    const v = sum / n + (o.m === heur ? EXPERT.prior : 0) + (!o.m && fromMate ? EXPERT.mate : 0);
     if (v > bestV) { bestV = v; best = o.m; }
   }
   return best === undefined ? undefined : best;

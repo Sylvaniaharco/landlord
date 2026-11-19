@@ -57,6 +57,9 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
 - Level **Jago** (`expert`) = heuristik Sulit menyaring 6 langkah terbaik, lalu Monte Carlo: 16 dunia diundi dari kartu yang belum
   terlihat (bukan dari tangan lawan — jangan sampai bocor), tiap dunia dimainkan sampai habis dengan bot Sulit, dipilih yang paling
   sering menang. Seed dunia dari `g.seed` + jumlah langkah (bukan dari `rnd` pemanggil) supaya keputusan tetap bisa diulang.
+  Rata-rata 16 dunia itu kasar (1 dunia = 0,125), jadi pilihan heuristik diberi bonus `EXPERT.prior` dan pass diberi `EXPERT.mate`
+  kalau teman yang terakhir main — tanpa itu petani menimpa langkah temannya sendiri (35% → 6%, dijaga tes
+  `petani tidak menimpa langkah temannya sendiri`).
   ±17 ms/keputusan. Ubah bot → ukur lagi dengan `npm run strength` (mis. `node scripts/strength.mjs expert hard 150`), jangan
   menaruh adu kekuatan di `npm test` (ratusan tangan, terlalu lama & berisik).
 - Teks UI bahasa Indonesia lewat `tx('...')` (atau `data-t` di HTML); terjemahan English di `src/ui/lang-en.js`, dicek `test/i18n.test.js`.
