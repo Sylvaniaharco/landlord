@@ -1,11 +1,11 @@
 // Bot Doudizhu: 3 level (Mudah / Sedang / Sulit). Murni; hanya membaca yang boleh diketahui kursinya sendiri:
 // tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar, siapa tuan tanah. Tidak pernah mengintip tangan lawan / kartu dasar.
 // Keputusan bisa diulang: semua acak dari `rnd` (RNG berseed) yang diberikan pemanggil.
-import { counts, rankOf, R2, BJ, RJ, MAX_CHAIN } from './cards.js';
+import { counts, rankOf, sortHand, mulberry32, mixSeed, R2, BJ, RJ, MAX_CHAIN } from './cards.js';
 import { allMoves, legalMoves, isBombish } from './combos.js';
-import { bidOptions, mustLead, prevCombo, playedCards } from './game.js';
+import { bidOptions, mustLead, prevCombo, playedCards, applyAction } from './game.js';
 
-export const LEVELS = { easy: 'Mudah', normal: 'Sedang', hard: 'Sulit' };
+export const LEVELS = { easy: 'Mudah', normal: 'Sedang', hard: 'Sulit', expert: 'Jago' };
 export const DEFAULT_LEVEL = 'normal';
 export const validLevel = (v) => Object.hasOwn(LEVELS, v);
 
@@ -143,8 +143,8 @@ function chooseMove(g, seat, level, rnd) {
     return null;
   }
 
-  // ---------- Sedang & Sulit: nilai sisa tangan ----------
-  const hard = level === 'hard';
+  // ---------- Sedang, Sulit & Jago: nilai sisa tangan ----------
+  const hard = level === 'hard' || level === 'expert';
   const threat = I.minOpp; // kartu tersisa lawan paling sedikit
   const lastBy = byLast;
   const lastOppCount = lastBy !== undefined && lastBy >= 0 ? I.n[lastBy] : 99;
@@ -176,9 +176,15 @@ function chooseMove(g, seat, level, rnd) {
   };
 
   let best = null, bestV = Infinity;
+  const scored = [];
   for (const m of moves) {
     const v = score(m);
+    scored.push({ m, v });
     if (v < bestV) { bestV = v; best = m; }
+  }
+  if (level === 'expert') {
+    const pick = searchMove(g, seat, scored, lead);
+    if (pick !== undefined) return pick;
   }
   if (lead) return best;
 
@@ -198,8 +204,101 @@ function chooseMove(g, seat, level, rnd) {
   return bestV <= passV ? best : null;
 }
 
+// ---------- Jago: coba langkah di banyak kemungkinan pembagian kartu lawan (Monte Carlo) ----------
+// Kartu lawan tidak diintip: dunia diundi dari kartu yang BELUM terlihat (54 kartu - tangan sendiri - yang sudah keluar),
+// dibagi sesuai jumlah kartu tiap lawan. Tiap dunia dimainkan sampai habis dengan bot Sulit, lalu poin kursi sendiri dirata-rata.
+// worlds/cands dipilih dari uji kekuatan (scripts/simulate.mjs): 16 dunia × 6 langkah teratas = +1,1 poin/tangan di atas Sulit.
+const EXPERT = { worlds: 16, cands: 6, maxUnseen: 34, steps: 220 };
+
+function cloneGame(g, hands) {
+  const t = g.trick;
+  return {
+    ...g,
+    hands,
+    kitty: g.kitty ? g.kitty.slice() : null,
+    bid: g.bid ? { ...g.bid, queue: [...g.bid.queue], acts: [...g.bid.acts] } : null,
+    mult: { ...g.mult, springSeats: [...g.mult.springSeats] },
+    trick: t ? { last: t.last ? { ...t.last, cards: [...t.last.cards] } : null, passes: t.passes } : null,
+    plays: g.plays.map((p) => ({ ...p })),
+    playsBy: [...g.playsBy],
+    result: null,
+    log: [],
+  };
+}
+
+/** Kartu yang belum terlihat kursi `seat` (= gabungan tangan kedua lawan, termasuk kartu dasar yang diambil tuan tanah). */
+function unseen(g, seat) {
+  const mine = new Set(g.hands[seat]);
+  const out = new Set(playedCards(g));
+  const pool = [];
+  for (let c = 0; c < 54; c++) if (!mine.has(c) && !out.has(c)) pool.push(c);
+  return pool;
+}
+
+/** Bagikan `pool` ke kedua lawan sesuai jumlah kartunya (hanya jumlah yang dibaca, bukan isinya). */
+function dealWorld(g, seat, pool, rnd) {
+  const sh = pool.slice();
+  for (let i = sh.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [sh[i], sh[j]] = [sh[j], sh[i]];
+  }
+  const hands = [];
+  let k = 0;
+  for (let s = 0; s < 3; s++) {
+    if (s === seat) { hands[s] = g.hands[s].slice(); continue; }
+    hands[s] = sortHand(sh.slice(k, k + g.hands[s].length));
+    k += g.hands[s].length;
+  }
+  return hands;
+}
+
+/** Mainkan sisa tangan (semua kursi pakai bot Sulit) setelah `a` dijalankan. -> poin kursi `seat`. */
+function playout(g, seat, hands, a, rnd) {
+  const sim = cloneGame(g, hands);
+  if (!applyAction(sim, seat, a).ok) return null;
+  let steps = 0;
+  while (sim.phase !== 'done' && ++steps < EXPERT.steps) {
+    const s = sim.turn;
+    let r = applyAction(sim, s, botAction(sim, s, 'hard', rnd));
+    if (!r.ok) r = applyAction(sim, s, timeoutAction(sim, s, rnd));
+    if (!r.ok) return null;
+  }
+  return sim.result ? sim.result.points[seat] : null;
+}
+
 /**
- * Aksi bot untuk kursi `seat` (giliran sendiri). level: 'easy' | 'normal' | 'hard'. rnd: RNG berseed.
+ * Pilih langkah dengan rata-rata poin terbaik. `scored` = semua langkah sah + nilai heuristiknya (kecil = bagus).
+ * -> langkah terpilih, null = pass, atau undefined kalau pencarian dilewati (pakai heuristik saja).
+ */
+function searchMove(g, seat, scored, lead) {
+  const pool = unseen(g, seat);
+  if (!pool.length || pool.length > EXPERT.maxUnseen) return undefined; // awal tangan: terlalu banyak kemungkinan, tidak berguna
+  const cands = scored.slice().sort((a, b) => a.v - b.v).slice(0, EXPERT.cands).map((x) => x.m);
+  if (!cands.length) return undefined;
+  if (cands.length === 1 && lead) return cands[0];
+  // seed tetap (bukan dari rnd pemanggil) supaya keputusan bisa diulang persis dan tiap langkah diuji di dunia yang sama
+  const base = mixSeed(g.seed, g.plays.length * 31 + seat * 7 + g.redeals * 211);
+  const worlds = [];
+  for (let i = 0; i < EXPERT.worlds; i++) worlds.push(dealWorld(g, seat, pool, mulberry32(mixSeed(base, i))));
+  const options = lead ? cands.map((m) => ({ m })) : [...cands.map((m) => ({ m })), { m: null }];
+  let best, bestV = -Infinity;
+  for (const o of options) {
+    let sum = 0, n = 0;
+    for (let i = 0; i < worlds.length; i++) {
+      const p = playout(g, seat, worlds[i].map((h) => h.slice()), o.m ? { t: 'play', cards: o.m.cards } : { t: 'pass' }, mulberry32(mixSeed(base, 1000 + i)));
+      if (p === null) continue;
+      sum += Math.sign(p); // menang/kalah, bukan poin: jauh lebih stabil dengan dunia sebanyak ini
+      n++;
+    }
+    if (!n) continue;
+    const v = sum / n;
+    if (v > bestV) { bestV = v; best = o.m; }
+  }
+  return best === undefined ? undefined : best;
+}
+
+/**
+ * Aksi bot untuk kursi `seat` (giliran sendiri). level: 'easy' | 'normal' | 'hard' | 'expert'. rnd: RNG berseed.
  * -> aksi untuk applyAction ({t:'call'} / {t:'play', cards} / {t:'pass'} ...)
  */
 export function botAction(g, seat, level = DEFAULT_LEVEL, rnd = Math.random) {

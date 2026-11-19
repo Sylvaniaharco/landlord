@@ -43,6 +43,33 @@ test('bot Sulit lebih kuat dari Sedang, Sedang lebih kuat dari Mudah (rata-rata 
   assert.ok(pts.hard > pts.normal && pts.normal > pts.easy, JSON.stringify(pts));
 });
 
+test('bot Jago (Monte Carlo): langkahnya sah dan tidak mengintip tangan lawan', () => {
+  // sah & tidak macet
+  for (let i = 0; i < 6; i++) {
+    const L = ['hard', 'hard', 'hard'];
+    L[i % 3] = 'expert';
+    const { g } = playOut(60000 + i, L);
+    assert.equal(g.phase, 'done');
+    assert.equal(g.result.points.reduce((a, b) => a + b, 0), 0);
+    assert.equal(g.hands.flat().length + g.plays.filter((p) => p.cards).flatMap((p) => p.cards).length, 54);
+  }
+  // tidak mengintip: dunia yang diundi hanya dari kartu yang belum terlihat, jadi menukar kartu antar lawan tidak mengubah apa pun
+  for (let i = 0; i < 8; i++) {
+    const g = newHand(700 + i, i % 3);
+    const rnd = mulberry32(i);
+    for (let k = 0; k < 14 + (i % 5) && g.phase !== 'done'; k++) applyAction(g, g.turn, botAction(g, g.turn, 'hard', rnd));
+    if (g.phase === 'done') continue;
+    const me = g.turn;
+    const a1 = botAction(g, me, 'expert', () => 0.3);
+    const o = [0, 1, 2].filter((s) => s !== me);
+    const pool = [...g.hands[o[0]], ...g.hands[o[1]]].sort((x, y) => y - x);
+    g.hands[o[0]] = pool.slice(0, g.hands[o[0]].length);
+    g.hands[o[1]] = pool.slice(g.hands[o[0]].length);
+    assert.deepEqual(botAction(g, me, 'expert', () => 0.3), a1);
+  }
+  // kekuatannya diukur terpisah (butuh ratusan tangan, terlalu lama untuk CI): node scripts/strength.mjs
+});
+
 test('bot tidak mengintip: tangan lawan ditukar (jumlah sama) → keputusan sama', () => {
   for (let i = 0; i < 60; i++) {
     const g = newHand(300 + i, i % 3);

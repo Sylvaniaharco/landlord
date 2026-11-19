@@ -3,7 +3,7 @@
 Doudizhu 3 pemain di browser, satu keluarga dengan **Mahjong Kung2** dan **Capsa Kung2** (akun & tampilan sama).
 Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo ini).
 
-- **Lawan 2 bot** (Mudah / Sedang / Sulit) — tanpa login, jalan di HP (juga offline). Meja **Latihan** (tanpa koin) atau meja koin
+- **Lawan 2 bot** (Mudah / Sedang / Sulit / Jago) — tanpa login, jalan di HP (juga offline). Meja **Latihan** (tanpa koin) atau meja koin
   **25 / 50 / 100** pakai koin meja bot di HP (saldo awal 1.000, minimal 500 / 2.000 / 5.000, reset ke 1.000
   jam 00.01 WIB kalau di bawah 500). Tangan bermeja koin yang ditinggal (keluar / app ditutup) dihitung kalah.
 - **Main bareng teman** — buat meja, bagikan kode 5 huruf / link `…/games/doudizhu/#room=KODE`. Kursi kosong diisi bot. Tanpa rating.
@@ -11,6 +11,7 @@ Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo i
   saldo minimal 500 / 2.000 / 5.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
   Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + rating Doudizhu (Elo, tier Bronze → Master),
   papan peringkat & riwayat tangan. Saldo kurang dari minimal meja = dilepas dari meja.
+  Bot pengisi kursi: meja **50 & 100 pakai bot Jago**, meja 25 bot Sedang (`rankedLevel` di `src/engine/room.js`).
 
 ## Stack
 
@@ -21,7 +22,7 @@ Server: Cloudflare Worker `doudizhu` + Durable Object (SQLite bawaan DO, **tanpa
 | --- | --- |
 | Aturan (semua flag & angka) | `src/engine/rules.config.js` |
 | Kartu, kombinasi, tawar, skor | `src/engine/cards.js`, `combos.js`, `game.js` |
-| Bot 3 level + Saran | `src/engine/bot.js` |
+| Bot 4 level + Saran | `src/engine/bot.js` |
 | Logika meja (teman, Ranked, latihan) | `src/engine/room.js` (murni, dites) |
 | Worker / DO meja / pencari meja Ranked | `worker/index.js`, `worker/room.js` (`DdzRoom`), `worker/lobby.js` (`DdzLobby`) |
 | Klien | `src/main.js`, `src/net/online.js` (WebSocket + sambung ulang), `src/net/local.js` (latihan), `src/ui/*` |
@@ -97,14 +98,19 @@ kursinya (tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar) — dites
   (pencarian rantai), menyimpan bom sampai lawan hampir habis atau bisa menutup tangan, menghitung kartu yang belum keluar,
   bekerja sama sebagai petani (tidak merebut dari teman, menyuapi teman yang tinggal 1–2 kartu, menghadang Tuan Tanah).
 - **Sedang:** cara yang sama tanpa hitung kartu & kerja sama yang lebih longgar. **Mudah:** kartu terkecil, sedikit acak.
+- **Jago:** heuristik Sulit untuk menyaring 6 langkah terbaik, lalu Monte Carlo — 16 kemungkinan pembagian kartu lawan diundi dari
+  kartu yang belum terlihat (tetap tidak mengintip), tiap langkah dimainkan sampai tangan habis dengan bot Sulit, yang paling sering
+  menang dipakai. ±17 ms per keputusan (paling lama ±95 ms). Dipakai di meja Ranked 50 & 100 dan bisa dipilih di meja lawan bot/teman.
 - Simulasi 3000 tangan (`npm run sim`, ±0,8 ms/tangan): Tuan Tanah menang ±60%, ±0,4 bom/tangan; poin rata-rata Mudah −2,7 / Sedang
-  +0,4 / Sulit +2,3 per tangan.
+  +0,4 / Sulit +2,3 per tangan. Adu level: `npm run strength -- jago hard 150` → Jago **+0,6 … +1,1 poin/tangan** di atas Sulit
+  (Sulit sendiri +0,44 di atas Sedang).
 
 ## Main di lokal
 
 ```bash
 npm test            # node --test test/*.test.js (engine, bot + 600 tangan simulasi, meja/Ranked, i18n, akun)
 npm run sim         # 3000 tangan bot vs bot: cek langkah ilegal/macet + statistik
+npm run strength    # adu kekuatan level bot, mis. node scripts/strength.mjs expert hard 150
 npm run dev         # python3 -m http.server 8080 → http://localhost:8080 (hanya Latihan)
 npm run dev:online  # build + wrangler dev (meja teman jalan; buka /games/doudizhu/)
 ```

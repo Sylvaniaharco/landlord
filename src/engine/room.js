@@ -206,7 +206,7 @@ export function step(room, now, online = () => true) {
   const s = room.seats[seat];
   const rnd = mulberry32(mixSeed(g.seed, g.plays.length * 7 + (g.bid?.acts.length || 0) + g.redeals * 101 + seat));
   let a;
-  if (d.kind === 'bot') a = botAction(g, seat, s.bot ? room.level : room.kind === 'ranked' ? 'hard' : 'normal', rnd);
+  if (d.kind === 'bot') a = botAction(g, seat, s.bot ? room.level : room.kind === 'ranked' ? rankedLevel(rankedStake(room)) : 'normal', rnd);
   else if (d.kind === 'offline') a = botAction(g, seat, 'normal', rnd);
   else {
     a = timeoutAction(g, seat, rnd);
@@ -244,10 +244,14 @@ function finishHand(room, now) {
 
 /** Meja Ranked dengan taruhan koin akun (25/50/100 koin per poin). stake 0 = rating saja (meja lama). */
 export function createRanked(code, now, stake = 0) {
-  const r = base(code, 'ranked', now, 'hard');
-  r.ranked = { stake: STAKES.includes(stake) ? stake : 0 };
+  const s = STAKES.includes(stake) ? stake : 0;
+  const r = base(code, 'ranked', now, rankedLevel(s));
+  r.ranked = { stake: s };
   return r;
 }
+
+/** Level bot di meja Ranked: meja besar (50 & 100) lawan bot Jago, meja kecil Sedang (permintaan Teddy). */
+export const rankedLevel = (stake) => (Number(stake) >= 50 ? 'expert' : 'normal');
 const rankedStake = (room) => room.ranked?.stake || 0;
 const coinsOk = (room, coins) => !rankedStake(room) || Number(coins) >= minEntry(rankedStake(room));
 
