@@ -39,8 +39,8 @@ button { font: inherit; color: inherit; }
 #app {
   position: relative; height: 100%; overflow: hidden;
   --vw: 1vw; --vh: 1vh; /* diisi JS dari ukuran #app */
-  --cw: min(calc(var(--vw) * 11), calc(var(--vh) * 16.5), 150px); /* lebar kartu di tangan */
-  --mw: min(calc(var(--vw) * 5.5), calc(var(--vh) * 9), 76px); /* lebar kartu mini (kartu yang keluar) */
+  --cw: min(calc(var(--vw) * 8.8), calc(var(--vh) * 16.5), 120px); /* lebar kartu di tangan */
+  --mw: min(calc(var(--vw) * 4.4), calc(var(--vh) * 9), 61px); /* lebar kartu mini (kartu yang keluar) */
   --gut-l: max(16px, env(safe-area-inset-left, 0px));
   --gut-r: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -324,7 +324,7 @@ button { font: inherit; color: inherit; }
 @keyframes pop { 40% { transform: scale(1.35); } }
 
 .kitty { position: absolute; z-index: 3; left: 50%; top: 12px; translate: -50% 0; display: flex; gap: 4px; align-items: center; }
-.kitty .card { --mw: min(calc(var(--vw) * 4.4), calc(var(--vh) * 7.5), 56px); }
+.kitty .card { --mw: min(calc(var(--vw) * 3.5), calc(var(--vh) * 7.5), 45px); }
 .kitty small { margin-left: 6px; font-size: 11px; color: var(--muted); max-width: 9em; line-height: 1.2; }
 
 /* kursi lawan: kanan (s1 = giliran berikutnya) & kiri (s2) */
@@ -354,7 +354,7 @@ button { font: inherit; color: inherit; }
 .nm .tot.neg { color: var(--lose); }
 .nm .flag { display: block; font-size: 11px; color: #ffd9a8; }
 .stack { position: relative; flex: 0 0 auto; }
-.stack .card { --mw: min(calc(var(--vw) * 4.6), calc(var(--vh) * 8), 60px); }
+.stack .card { --mw: min(calc(var(--vw) * 3.7), calc(var(--vh) * 8), 48px); }
 .stack b { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--mw) * .55); font-weight: 900; color: #fff; text-shadow: 0 2px 3px #000, 0 0 6px #000; }
 .stack.few b { color: var(--accent); }
 .stack.few .card { box-shadow: 0 0 0 2px var(--lose), 0 0 12px rgba(255, 130, 114, .8); }
@@ -500,7 +500,7 @@ button { font: inherit; color: inherit; }
 
 /* sisa kartu lawan setelah tangan selesai (di bawah kursinya) & kartu mini di panel hasil */
 .leftover { position: absolute; z-index: 4; top: calc(64px + clamp(40px, calc(var(--vh) * 12), 60px) + 10px); display: flex; flex-wrap: wrap; align-items: center;
-  max-width: 42%; row-gap: 3px; --mw: min(calc(var(--vw) * 3.9), calc(var(--vh) * 6.4), 48px); pointer-events: none; }
+  max-width: 42%; row-gap: 3px; --mw: min(calc(var(--vw) * 3.1), calc(var(--vh) * 6.4), 38px); pointer-events: none; }
 .leftover:empty { display: none; }
 .leftover small { flex-basis: 100%; font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
 .leftover .card { margin-right: calc(var(--mw) * -.42); }

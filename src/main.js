@@ -2,7 +2,7 @@
 // Satu renderer untuk semua jenis meja: Latihan (LocalTable, di HP) dan online (RoomSession, server) sama-sama mengirim
 // viewFor(room, kursi) dari src/engine/room.js. Klien tidak pernah tahu tangan lawan / kartu dasar.
 import { RANKS, rankOf, counts, sortHand } from './engine/cards.js';
-import { readPlay, TYPE_NAMES } from './engine/combos.js';
+import { readPlay, canBeat, TYPE_NAMES } from './engine/combos.js';
 import { hints, LEVELS, DEFAULT_LEVEL, validLevel } from './engine/bot.js';
 import { RULES } from './engine/rules.config.js';
 import { ROOM_CODE } from './engine/room.js';
@@ -303,10 +303,11 @@ $('#lbAccount').addEventListener('click', async (e) => {
 });
 
 // ---------- masuk meja ----------
+const AUTO_PASS_MS = 900; // jeda sebelum Pass otomatis, supaya pemain sempat lihat kartu di meja
 let T = null; // meja yang sedang dibuka: { session, kind, code, view, seat, offset, logSeen, sel:Set, hint, handKey, timer }
 
 function openTable(kind, code, session) {
-  T = { kind, code, session, view: null, seat: 0, offset: 0, logSeen: -1, sel: new Set(), hint: null, handKey: '', timer: 0, lastTurn: -2, round: 0, newCards: null };
+  T = { kind, code, session, view: null, seat: 0, offset: 0, logSeen: -1, sel: new Set(), hint: null, handKey: '', timer: 0, lastTurn: -2, round: 0, newCards: null, autoPass: null };
   T.timer = setInterval(tick, 250);
   closeModal();
   show('table');
@@ -420,6 +421,7 @@ function closeTable() {
     if (lost) toast(tx('Tangan ditinggal dihitung kalah: {n} koin', { n: signed(lost) }), 3500);
   }
   clearInterval(T.timer);
+  clearTimeout(T.autoPass?.id);
   T.session?.close?.();
   T = null;
   save(ROOM_KEY, null);
@@ -512,6 +514,34 @@ function render(v) {
     sfx('turn');
     if (navigator.vibrate && document.hidden === false && g.phase === 'play') try { navigator.vibrate(30); } catch { /* tidak didukung */ }
   }
+  maybeAutoPass(v);
+}
+
+/** Tidak ada satu pun kartu yang bisa mengalahkan kartu di meja? */
+function stuck(v) {
+  const g = v?.game;
+  if (!g || v.status !== 'playing' || v.seat < 0 || g.phase !== 'play') return false;
+  if (g.turn !== v.seat || g.mustLead || v.seats[v.seat]?.auto) return false;
+  const prev = g.last?.combo;
+  return !!prev && !canBeat(g.hand, prev, RULES);
+}
+
+/** Kalau satu-satunya langkah sah adalah Pass, kirim sendiri setelah jeda singkat (tidak ada yang perlu dipilih). */
+function maybeAutoPass(v) {
+  const g = v.game;
+  const key = g ? `${v.round}:${g.plays.length}:${g.redeals}` : '';
+  if (T.autoPass && T.autoPass.key !== key) { clearTimeout(T.autoPass.id); T.autoPass = null; }
+  if (T.autoPass || !stuck(v)) return;
+  T.autoPass = {
+    key,
+    id: setTimeout(() => {
+      T.autoPass = null;
+      if (!stuck(T.view)) return;
+      T.sel.clear();
+      sfx('pass');
+      send({ t: 'act', a: { t: 'pass' } });
+    }, AUTO_PASS_MS),
+  };
 }
 
 function renderSeats(v) {
@@ -770,7 +800,8 @@ function renderActions(v) {
     html.push(`<button class="btn" data-act="hint" type="button">${tx('Saran')}</button>`);
     html.push(`<button class="btn primary" data-act="play" type="button"${combo ? '' : ' disabled'}>${tx('Keluarkan')}</button>`);
     html.push('<div class="timer" id="myTimer"><b></b></div>');
-    if (note) html.push(`<span class="note${combo ? '' : ' bad'}">${esc(note)}</span>`);
+    if (T.autoPass) html.push(`<span class="note">${tx('Tidak ada yang bisa mengalahkan — Pass otomatis')}</span>`);
+    else if (note) html.push(`<span class="note${combo ? '' : ' bad'}">${esc(note)}</span>`);
   } else if (g.phase === 'play') {
     html.push(`<button class="btn small ghost" data-act="sort" type="button">${settings.sort === 'group' ? tx('Urut nilai') : tx('Urut kelompok')}</button>`);
     if (T.sel.size) html.push(`<button class="btn small ghost" data-act="clear" type="button">${tx('Batal pilih')}</button>`);

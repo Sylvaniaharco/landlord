@@ -60,6 +60,7 @@ export const EN = {
   'Main otomatis aktif': 'Autoplay is on', 'Main lagi sendiri': 'Take back control', 'Tidak bisa mengalahkan': 'Does not beat it', 'Kombinasi tidak sah': 'Not a valid combination',
   'Saran': 'Hint', 'Keluarkan': 'Play', 'Urut nilai': 'Sort by rank', 'Urut kelompok': 'Sort by group', 'Batal pilih': 'Clear',
   'Tidak ada kartu yang bisa mengalahkan — Pass': 'Nothing can beat it — Pass',
+  'Tidak ada yang bisa mengalahkan — Pass otomatis': 'Nothing beats it — auto Pass',
   'Panggil': 'Call', 'Rebut': 'Grab', '1 poin': '1 point', '2 poin': '2 points', '3 poin': '3 points', 'Tawaran': 'Bid', 'Bom': 'Bomb', 'Roket': 'Rocket',
   'Kode meja': 'Table code', '{n} dari 3 pemain · kursi kosong diisi bot ({lv})': '{n} of 3 players · empty seats get bots ({lv})', 'Bagikan link': 'Share link',
   'Mulai': 'Start', 'Menunggu pembuat meja memulai…': 'Waiting for the host to start…',
