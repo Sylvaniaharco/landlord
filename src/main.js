@@ -802,7 +802,9 @@ function renderActions(v) {
     html.push('<div class="timer" id="myTimer"><b></b></div>');
     if (T.autoPass) html.push(`<span class="note">${tx('Tidak ada yang bisa mengalahkan — Pass otomatis')}</span>`);
     else if (note) html.push(`<span class="note${combo ? '' : ' bad'}">${esc(note)}</span>`);
-  } else if (g.phase === 'play') {
+  }
+  // Urutan kartu & batal pilih selalu ada (tidak hilang saat giliran sendiri)
+  if (g.phase === 'bid' || g.phase === 'play') {
     html.push(`<button class="btn small ghost" data-act="sort" type="button">${settings.sort === 'group' ? tx('Urut nilai') : tx('Urut kelompok')}</button>`);
     if (T.sel.size) html.push(`<button class="btn small ghost" data-act="clear" type="button">${tx('Batal pilih')}</button>`);
   }
