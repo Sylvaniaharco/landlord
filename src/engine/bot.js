@@ -1,11 +1,11 @@
-// Bot Doudizhu: 3 level (Mudah / Sedang / Sulit). Murni; hanya membaca yang boleh diketahui kursinya sendiri:
+// Bot Doudizhu: 5 level (Mudah / Sedang / Sulit / Jago / God). Murni; hanya membaca yang boleh diketahui kursinya sendiri:
 // tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar, siapa tuan tanah. Tidak pernah mengintip tangan lawan / kartu dasar.
 // Keputusan bisa diulang: semua acak dari `rnd` (RNG berseed) yang diberikan pemanggil.
 import { counts, rankOf, sortHand, mulberry32, mixSeed, R2, BJ, RJ, MAX_CHAIN } from './cards.js';
 import { allMoves, legalMoves, isBombish } from './combos.js';
 import { bidOptions, mustLead, prevCombo, playedCards, applyAction } from './game.js';
 
-export const LEVELS = { easy: 'Mudah', normal: 'Sedang', hard: 'Sulit', expert: 'Jago' };
+export const LEVELS = { easy: 'Mudah', normal: 'Sedang', hard: 'Sulit', expert: 'Jago', god: 'God' };
 export const DEFAULT_LEVEL = 'normal';
 export const validLevel = (v) => Object.hasOwn(LEVELS, v);
 
@@ -143,8 +143,8 @@ function chooseMove(g, seat, level, rnd) {
     return null;
   }
 
-  // ---------- Sedang, Sulit & Jago: nilai sisa tangan ----------
-  const hard = level === 'hard' || level === 'expert';
+  // ---------- Sedang, Sulit, Jago & God: nilai sisa tangan ----------
+  const hard = level === 'hard' || searching(level);
   const threat = I.minOpp; // kartu tersisa lawan paling sedikit
   const lastBy = byLast;
   const lastOppCount = lastBy !== undefined && lastBy >= 0 ? I.n[lastBy] : 99;
@@ -201,22 +201,32 @@ function chooseMove(g, seat, level, rnd) {
     heur = bestV <= passV ? best : null;
   }
 
-  // Jago: uji beberapa langkah teratas + pilihan heuristik di banyak kemungkinan kartu lawan
-  if (level === 'expert') {
-    const pick = searchMove(g, seat, scored, lead, heur, fromMate);
+  // Jago / God: uji beberapa langkah teratas + pilihan heuristik di banyak kemungkinan kartu lawan
+  if (searching(level)) {
+    const pick = searchMove(g, seat, scored, lead, heur, fromMate, SEARCH[level]);
     if (pick !== undefined) return pick;
   }
   return heur;
 }
 
-// ---------- Jago: coba langkah di banyak kemungkinan pembagian kartu lawan (Monte Carlo) ----------
+// ---------- Jago & God: coba langkah di banyak kemungkinan pembagian kartu lawan (Monte Carlo) ----------
 // Kartu lawan tidak diintip: dunia diundi dari kartu yang BELUM terlihat (54 kartu - tangan sendiri - yang sudah keluar),
 // dibagi sesuai jumlah kartu tiap lawan. Tiap dunia dimainkan sampai habis dengan bot Sulit, lalu poin kursi sendiri dirata-rata.
 // Angka-angkanya dari uji kekuatan (scripts/strength.mjs): 16 dunia × 6 langkah teratas ≈ +1,0 … +1,2 poin/tangan di atas Sulit.
 // prior: bonus untuk pilihan heuristik — pencarian hanya menyimpang kalau untungnya nyata (1 dunia = 0,125, jadi 0,2 > sekadar seri).
 // mate: bonus tambahan untuk pass waktu teman yang terakhir main; Monte Carlo "tahu" kartu di dunia undiannya, jadi tanpa ini
 // petani suka menimpa langkah temannya sendiri (diukur: 35% → 6%, dan main jadi lebih kuat).
-const EXPERT = { worlds: 16, cands: 6, maxUnseen: 34, steps: 220, prior: 0.2, mate: 0.3 };
+// God = Jago dengan pencarian lebih berat + dunia yang menghormati petunjuk dari pass (passClues): lebih banyak dunia
+// (undian lebih jarang salah), lebih banyak langkah yang diuji, mulai mencari lebih awal (maxUnseen), prior lebih kecil
+// (berani menyimpang dari heuristik karena 1 dunia = 0,021), dan di akhir tangan (`late`) jumlah dunianya dilipatkan.
+// Diukur 1.680 tangan God vs Jago: +0,13 poin/tangan (per 420 tangan: -0,07 / +0,10 / +0,14 / +0,33 — bedanya tipis),
+// God vs Sulit +1,57. Biayanya ±80 ms/keputusan (±4x Jago); dipakai di meja Ranked 500.
+const SEARCH = {
+  expert: { worlds: 16, late: 16, cands: 6, maxUnseen: 34, steps: 220, prior: 0.2, mate: 0.3, clues: 0, tries: 1 },
+  god: { worlds: 48, late: 96, cands: 9, maxUnseen: 42, steps: 220, prior: 0.1, mate: 0.3, clues: 3, tries: 8 },
+};
+const searching = (level) => Object.hasOwn(SEARCH, level);
+const LATE_UNSEEN = 16; // "akhir tangan": kartu lawan (gabungan) tinggal segini atau kurang
 
 function cloneGame(g, hands) {
   const t = g.trick;
@@ -243,6 +253,38 @@ function unseen(g, seat) {
   return pool;
 }
 
+/**
+ * Petunjuk dari riwayat (info publik): tiap kali lawan pass pada kombinasi yang dimainkan LAWANNYA,
+ * dia hampir pasti tidak punya langkah non-bom yang bisa menang (bom memang sengaja disimpan, dan
+ * pass pada langkah teman sendiri itu kerja sama, bukan tanda tangan lemah — keduanya tidak dihitung).
+ * -> [kursi] = daftar kombinasi terakhir yang dia lewati.
+ */
+function passClues(g, seat, max) {
+  const clues = [[], [], []];
+  if (!max) return clues;
+  const team = (a, b) => (a === g.landlord) === (b === g.landlord);
+  let cur = null, curSeat = -1;
+  for (const p of g.plays) {
+    if (p.trick) { cur = null; curSeat = -1; continue; }
+    if (p.pass) {
+      if (cur && p.seat !== seat && !team(p.seat, curSeat)) clues[p.seat].push(cur);
+      continue;
+    }
+    cur = p.combo; curSeat = p.seat;
+  }
+  return clues.map((a) => a.slice(-max));
+}
+
+/** Berapa petunjuk yang dilanggar dunia ini (lawan ternyata punya langkah non-bom yang menang padahal tadi pass). */
+function clueMiss(g, seat, hands, clues) {
+  let n = 0;
+  for (let s = 0; s < 3; s++) {
+    if (s === seat) continue;
+    for (const c of clues[s]) if (legalMoves(hands[s], c, g.rules, { fewKickers: true }).some((m) => !isBombish(m.combo))) n++;
+  }
+  return n;
+}
+
 /** Bagikan `pool` ke kedua lawan sesuai jumlah kartunya (hanya jumlah yang dibaca, bukan isinya). */
 function dealWorld(g, seat, pool, rnd) {
   const sh = pool.slice();
@@ -261,11 +303,11 @@ function dealWorld(g, seat, pool, rnd) {
 }
 
 /** Mainkan sisa tangan (semua kursi pakai bot Sulit) setelah `a` dijalankan. -> poin kursi `seat`. */
-function playout(g, seat, hands, a, rnd) {
+function playout(g, seat, hands, a, rnd, cfg) {
   const sim = cloneGame(g, hands);
   if (!applyAction(sim, seat, a).ok) return null;
   let steps = 0;
-  while (sim.phase !== 'done' && ++steps < EXPERT.steps) {
+  while (sim.phase !== 'done' && ++steps < cfg.steps) {
     const s = sim.turn;
     let r = applyAction(sim, s, botAction(sim, s, 'hard', rnd));
     if (!r.ok) r = applyAction(sim, s, timeoutAction(sim, s, rnd));
@@ -278,36 +320,50 @@ function playout(g, seat, hands, a, rnd) {
  * Pilih langkah dengan rata-rata poin terbaik. `scored` = semua langkah sah + nilai heuristiknya (kecil = bagus).
  * -> langkah terpilih, null = pass, atau undefined kalau pencarian dilewati (pakai heuristik saja).
  */
-function searchMove(g, seat, scored, lead, heur, fromMate) {
+function searchMove(g, seat, scored, lead, heur, fromMate, cfg) {
   const pool = unseen(g, seat);
-  if (!pool.length || pool.length > EXPERT.maxUnseen) return undefined; // awal tangan: terlalu banyak kemungkinan, tidak berguna
-  const cands = scored.slice().sort((a, b) => a.v - b.v).slice(0, EXPERT.cands).map((x) => x.m);
+  if (!pool.length || pool.length > cfg.maxUnseen) return undefined; // awal tangan: terlalu banyak kemungkinan, tidak berguna
+  const cands = scored.slice().sort((a, b) => a.v - b.v).slice(0, cfg.cands).map((x) => x.m);
   if (heur && !cands.includes(heur)) cands.push(heur);
   if (!cands.length) return undefined;
   if (cands.length === 1 && lead) return cands[0];
   // seed tetap (bukan dari rnd pemanggil) supaya keputusan bisa diulang persis dan tiap langkah diuji di dunia yang sama
   const base = mixSeed(g.seed, g.plays.length * 31 + seat * 7 + g.redeals * 211);
+  const clues = passClues(g, seat, cfg.clues);
+  const hasClue = clues.some((a) => a.length);
   const worlds = [];
-  for (let i = 0; i < EXPERT.worlds; i++) worlds.push(dealWorld(g, seat, pool, mulberry32(mixSeed(base, i))));
+  // akhir tangan (kartu belum terlihat tinggal sedikit): dunia yang mungkin sedikit & playout pendek, jadi undi lebih banyak — di sinilah poin ditentukan
+  const nWorlds = pool.length <= LATE_UNSEEN ? cfg.late : cfg.worlds;
+  for (let i = 0; i < nWorlds; i++) {
+    // undian biasa; kalau ada petunjuk dari pass, coba beberapa kali dan ambil dunia yang paling cocok dengan petunjuk itu
+    const rnd = mulberry32(mixSeed(base, i));
+    let w = dealWorld(g, seat, pool, rnd), miss = hasClue ? clueMiss(g, seat, w, clues) : 0;
+    for (let k = 1; k < cfg.tries && miss; k++) {
+      const w2 = dealWorld(g, seat, pool, rnd);
+      const m2 = clueMiss(g, seat, w2, clues);
+      if (m2 < miss) { w = w2; miss = m2; }
+    }
+    worlds.push(w);
+  }
   const options = lead ? cands.map((m) => ({ m })) : [...cands.map((m) => ({ m })), { m: null }];
   let best, bestV = -Infinity;
   for (const o of options) {
     let sum = 0, n = 0;
     for (let i = 0; i < worlds.length; i++) {
-      const p = playout(g, seat, worlds[i].map((h) => h.slice()), o.m ? { t: 'play', cards: o.m.cards } : { t: 'pass' }, mulberry32(mixSeed(base, 1000 + i)));
+      const p = playout(g, seat, worlds[i].map((h) => h.slice()), o.m ? { t: 'play', cards: o.m.cards } : { t: 'pass' }, mulberry32(mixSeed(base, 1000 + i)), cfg);
       if (p === null) continue;
       sum += Math.sign(p); // menang/kalah, bukan poin: jauh lebih stabil dengan dunia sebanyak ini
       n++;
     }
     if (!n) continue;
-    const v = sum / n + (o.m === heur ? EXPERT.prior : 0) + (!o.m && fromMate ? EXPERT.mate : 0);
+    const v = sum / n + (o.m === heur ? cfg.prior : 0) + (!o.m && fromMate ? cfg.mate : 0);
     if (v > bestV) { bestV = v; best = o.m; }
   }
   return best === undefined ? undefined : best;
 }
 
 /**
- * Aksi bot untuk kursi `seat` (giliran sendiri). level: 'easy' | 'normal' | 'hard' | 'expert'. rnd: RNG berseed.
+ * Aksi bot untuk kursi `seat` (giliran sendiri). level: 'easy' | 'normal' | 'hard' | 'expert' | 'god'. rnd: RNG berseed.
  * -> aksi untuk applyAction ({t:'call'} / {t:'play', cards} / {t:'pass'} ...)
  */
 export function botAction(g, seat, level = DEFAULT_LEVEL, rnd = Math.random) {
@@ -320,8 +376,9 @@ export function botAction(g, seat, level = DEFAULT_LEVEL, rnd = Math.random) {
       const want = s + j >= 11 ? 3 : s + j >= 8.5 ? 2 : s + j >= 6.5 ? 1 : 0;
       return opts.includes('bid' + want) ? { t: 'bid' + want } : { t: 'pass' };
     }
-    const callAt = level === 'hard' ? 7 : level === 'normal' ? 6.5 : 6;
-    const grabAt = level === 'hard' ? 9.5 : level === 'normal' ? 10 : 9;
+    // Sulit ke atas pakai ambang yang sama (dulu Jago kejatuhan cabang terakhir, jadi menawar seagresif Mudah)
+    const callAt = level === 'easy' ? 6 : level === 'normal' ? 6.5 : 7;
+    const grabAt = level === 'easy' ? 9 : level === 'normal' ? 10 : 9.5;
     if (opts.includes('call')) return s + j >= callAt ? { t: 'call' } : { t: 'pass' };
     return s + j >= grabAt + (g.bid.grabs || 0) ? { t: 'grab' } : { t: 'pass' };
   }

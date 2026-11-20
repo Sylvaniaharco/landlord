@@ -55,7 +55,7 @@ function settleAbandoned() {
 }
 const TABLES = [
   { stake: 0, name: 'Latihan', sub: 'Tanpa koin', color: '#5b6f7f', chip: '0' },
-  ...STAKES.map((st, i) => ({ stake: st, name: `Meja ${st}`, color: ['#2c8f73', '#2d6fd8', '#b8324a'][i], chip: String(st) })),
+  ...STAKES.map((st, i) => ({ stake: st, name: `Meja ${st}`, color: ['#2c8f73', '#2d6fd8', '#b8324a', '#7b3fb8'][i], chip: String(st) })),
 ];
 
 // ---------- ukuran layar ----------

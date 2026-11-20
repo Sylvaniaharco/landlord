@@ -196,7 +196,9 @@ test('Ranked koin: saldo minimal meja, payload berisi taruhan & poin, koin pasti
 
 test('Latihan bermeja koin menyimpan taruhannya (dihitung di HP)', () => {
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 100), 0).stake, 100);
-  assert.deepEqual([25, 50, 100].map(minEntry), [500, 2000, 5000], 'saldo minimal meja 25/50/100');
+  assert.deepEqual([25, 50, 100, 500].map(minEntry), [500, 2000, 5000, 50000], 'saldo minimal meja 25/50/100/500');
+  assert.deepEqual([0, 25, 50, 100, 500].map(R.rankedLevel), ['normal', 'normal', 'expert', 'expert', 'god'], 'level bot per meja Ranked');
+  assert.equal(R.createRanked('BESAR', 0, 500).level, 'god', 'meja 500 = bot God');
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 7), 0).stake, 0, 'taruhan tidak dikenal = tanpa koin');
   assert.equal(R.viewFor(R.createPractice(A, 'easy', 3, 0, 5), 0).stake, 0, 'taruhan lama 5 sudah tidak dibuka');
   assert.equal(R.createRanked('LAMA5', 0, 10).ranked.stake, 0, 'meja baru tidak bisa memakai taruhan lama');

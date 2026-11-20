@@ -9,7 +9,7 @@ export const EN = {
   'Latihan': 'Practice', 'lawan 2 bot · tanpa login': 'vs 2 bots · no login', 'Level bot': 'Bot level', 'Main lawan bot': 'Play vs bots',
   'Langsung mulai': 'Starts right away', 'Main bareng teman': 'Play with friends', 'kode meja · tanpa rating': 'table code · unrated',
   'Buat meja': 'Create table', 'Gabung pakai kode': 'Join with code',
-  'Mudah': 'Easy', 'Sedang': 'Normal', 'Sulit': 'Hard', 'Jago': 'Expert',
+  'Mudah': 'Easy', 'Sedang': 'Normal', 'Sulit': 'Hard', 'Jago': 'Expert', 'God': 'God',
   'Masuk dengan Google dulu': 'Sign in with Google first', 'placement {n} lagi': '{n} placement left', 'Bot mengisi kursi kosong': 'Bots fill empty seats',
   'Masuk dengan Google': 'Sign in with Google', 'Satu akun dengan Mahjong Kung2 & Capsa Kung2.': 'Same account as Mahjong Kung2 & Capsa Kung2.',
   'Akun yang sama dengan Mahjong Kung2 & Capsa Kung2. Rating Doudizhu terpisah.': 'Same account as Mahjong Kung2 & Capsa Kung2. Doudizhu has its own rating.',
