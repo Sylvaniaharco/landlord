@@ -42,7 +42,7 @@ export function createRoom(code, host, now, level = DEFAULT_LEVEL) {
   return r;
 }
 
-/** Latihan: kamu + 2 bot, langsung mulai. stake 0 = tanpa koin; 25/50/100 = koin meja AI di HP (dihitung klien). */
+/** Latihan: kamu + 2 bot, langsung mulai. stake 0 = tanpa koin; 25/50/100/500 = koin meja AI di HP (dihitung klien). */
 export function createPractice(user, level, seed, now, stake = 0) {
   const r = base('LATIH', 'practice', now, level);
   r.stake = STAKES.includes(stake) ? stake : 0;
@@ -242,7 +242,7 @@ function finishHand(room, now) {
 // seat.userId = id akun bersama (TIDAK PERNAH keluar ke klien). Tanpa host: mulai RANKED_WAIT_MS setelah pemain pertama,
 // tangan berikutnya otomatis. Pemain baru saat tangan berjalan menunggu, lalu menggantikan bot di tangan berikutnya.
 
-/** Meja Ranked dengan taruhan koin akun (25/50/100 koin per poin). stake 0 = rating saja (meja lama). */
+/** Meja Ranked dengan taruhan koin akun (25/50/100/500 koin per poin). stake 0 = rating saja (meja lama). */
 export function createRanked(code, now, stake = 0) {
   const s = STAKES.includes(stake) ? stake : 0;
   const r = base(code, 'ranked', now, rankedLevel(s));
@@ -250,8 +250,8 @@ export function createRanked(code, now, stake = 0) {
   return r;
 }
 
-/** Level bot di meja Ranked: meja besar (50 & 100) lawan bot Jago, meja kecil Sedang (permintaan Teddy). */
-export const rankedLevel = (stake) => (Number(stake) >= 50 ? 'expert' : 'normal');
+/** Level bot di meja Ranked: meja 500 lawan bot God, meja 50 & 100 Jago, meja kecil Sedang (permintaan Teddy). */
+export const rankedLevel = (stake) => (Number(stake) >= 500 ? 'god' : Number(stake) >= 50 ? 'expert' : 'normal');
 const rankedStake = (room) => room.ranked?.stake || 0;
 const coinsOk = (room, coins) => !rankedStake(room) || Number(coins) >= minEntry(rankedStake(room));
 

@@ -47,12 +47,12 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   `seat.id` (id HP / kunci kursi Ranked) dan `seat.userId` **tidak pernah** masuk `viewFor`.
 - Ranked: hasil tiap tangan → `settlePayload` → `env.MAHJONG.settle` (aman diulang; gagal → coba lagi lewat alarm). Bentuk payload harus cocok
   dengan `cleanDdzSettle` di repo games-mahjong0hk (`worker/doudizhu.js`). Rumus rating & koin ada di sana, bukan di sini.
-- **Dua saldo** (pola Capsa): koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked — meja `room.ranked.stake` 25/50/100 (`STAKES` di `src/engine/wallet.js` = `DDZ_STAKES` di repo Mahjong),
+- **Dua saldo** (pola Capsa): koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked — meja `room.ranked.stake` 25/50/100/500 (`STAKES` di `src/engine/wallet.js` = `DDZ_STAKES` di repo Mahjong),
   `DdzLobby.assign(stake, user)` antre per meja, `reserve`/`nextRanked` cek saldo minimal (`src/engine/wallet.js`), angka pasti dari server akun
   (`applySettle`). Koin meja bot (`ddz-wallet` di localStorage, tidak bisa dipercaya) hanya untuk mode lawan bot: dibayar di `practiceCoins`
   (`src/main.js`), tangan yang ditinggal dihitung kalah lewat `ddz-pending`. Koin akun **tidak boleh** berubah dari permainan lawan bot.
 - Bot (`bot.js`) hanya boleh membaca tangan sendiri + info publik (jumlah kartu, kartu keluar). Tes `bot tidak mengintip` menjaga ini.
-  Bot di server: Ranked ikut taruhannya (`rankedLevel` di `src/engine/room.js`: meja 50 & 100 = **Jago**, meja 25 & meja lama = Sedang),
+  Bot di server: Ranked ikut taruhannya (`rankedLevel` di `src/engine/room.js`: meja 500 = **God**, meja 50 & 100 = **Jago**, meja 25 & meja lama = Sedang),
   meja teman = level pilihan pembuat meja, kursi yang keluar/putus = Sedang.
 - Level **Jago** (`expert`) = heuristik Sulit menyaring 6 langkah terbaik, lalu Monte Carlo: 16 dunia diundi dari kartu yang belum
   terlihat (bukan dari tangan lawan — jangan sampai bocor), tiap dunia dimainkan sampai habis dengan bot Sulit, dipilih yang paling
@@ -60,7 +60,11 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   Rata-rata 16 dunia itu kasar (1 dunia = 0,125), jadi pilihan heuristik diberi bonus `EXPERT.prior` dan pass diberi `EXPERT.mate`
   kalau teman yang terakhir main — tanpa itu petani menimpa langkah temannya sendiri (35% → 6%, dijaga tes
   `petani tidak menimpa langkah temannya sendiri`).
-  ±17 ms/keputusan. Ubah bot → ukur lagi dengan `npm run strength` (mis. `node scripts/strength.mjs expert hard 150`), jangan
+  ±20 ms/keputusan. Level **God** memakai kode pencarian yang sama dengan angka lebih berat (`SEARCH` di `bot.js`: 48 dunia /
+  96 di akhir tangan, 9 langkah, `maxUnseen` 42, `prior` 0,1) + dunia yang cocok dengan petunjuk pass (`passClues`),
+  ±80 ms/keputusan — aman karena server hanya mengerjakan satu keputusan per alarm. Diukur +0,13 poin/tangan di atas Jago
+  (1.680 tangan, tipis) dan +1,57 di atas Sulit.
+  Ubah bot → ukur lagi dengan `npm run strength` (mis. `node scripts/strength.mjs god expert 60`), jangan
   menaruh adu kekuatan di `npm test` (ratusan tangan, terlalu lama & berisik).
 - Teks UI bahasa Indonesia lewat `tx('...')` (atau `data-t` di HTML); terjemahan English di `src/ui/lang-en.js`, dicek `test/i18n.test.js`.
 - Akun: `src/ui/account.js` memanggil API Mahjong dari origin yang sama (`/me`, `/config`, `/auth/logout`, `/auth/ticket`, `/errors` mode

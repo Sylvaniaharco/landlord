@@ -43,11 +43,11 @@ test('bot Sulit lebih kuat dari Sedang, Sedang lebih kuat dari Mudah (rata-rata 
   assert.ok(pts.hard > pts.normal && pts.normal > pts.easy, JSON.stringify(pts));
 });
 
-test('bot Jago (Monte Carlo): langkahnya sah dan tidak mengintip tangan lawan', () => {
+test('bot Jago & God (Monte Carlo): langkahnya sah dan tidak mengintip tangan lawan', () => {
   // sah & tidak macet
   for (let i = 0; i < 6; i++) {
     const L = ['hard', 'hard', 'hard'];
-    L[i % 3] = 'expert';
+    L[i % 3] = i % 2 ? 'god' : 'expert';
     const { g } = playOut(60000 + i, L);
     assert.equal(g.phase, 'done');
     assert.equal(g.result.points.reduce((a, b) => a + b, 0), 0);
@@ -60,12 +60,13 @@ test('bot Jago (Monte Carlo): langkahnya sah dan tidak mengintip tangan lawan', 
     for (let k = 0; k < 14 + (i % 5) && g.phase !== 'done'; k++) applyAction(g, g.turn, botAction(g, g.turn, 'hard', rnd));
     if (g.phase === 'done') continue;
     const me = g.turn;
-    const a1 = botAction(g, me, 'expert', () => 0.3);
+    const lv = i % 2 ? 'god' : 'expert';
+    const a1 = botAction(g, me, lv, () => 0.3);
     const o = [0, 1, 2].filter((s) => s !== me);
     const pool = [...g.hands[o[0]], ...g.hands[o[1]]].sort((x, y) => y - x);
     g.hands[o[0]] = pool.slice(0, g.hands[o[0]].length);
     g.hands[o[1]] = pool.slice(g.hands[o[0]].length);
-    assert.deepEqual(botAction(g, me, 'expert', () => 0.3), a1);
+    assert.deepEqual(botAction(g, me, lv, () => 0.3), a1);
   }
   // kekuatannya diukur terpisah (butuh ratusan tangan, terlalu lama untuk CI): node scripts/strength.mjs
 });
@@ -80,7 +81,7 @@ test('petani tidak menimpa langkah temannya sendiri (semua level)', () => {
   applyAction(g, 0, { t: 'pass' });
   assert.equal(g.turn, 1);
   assert.equal(g.trick.last.seat, 2);
-  for (const lv of ['normal', 'hard', 'expert']) assert.equal(botAction(g, 1, lv, r).t, 'pass', `level ${lv} menimpa temannya`);
+  for (const lv of ['normal', 'hard', 'expert', 'god']) assert.equal(botAction(g, 1, lv, r).t, 'pass', `level ${lv} menimpa temannya`);
 });
 
 test('bot tidak mengintip: tangan lawan ditukar (jumlah sama) → keputusan sama', () => {
@@ -101,6 +102,29 @@ test('bot tidak mengintip: tangan lawan ditukar (jumlah sama) → keputusan sama
     const a2 = botAction(g, me, 'hard', () => 0.3);
     assert.deepEqual(a2, a1);
   }
+});
+
+test('God: langkahnya sah dan keputusannya bisa diulang persis', () => {
+  for (let i = 0; i < 10; i++) {
+    const g = newHand(900 + i, i % 3);
+    const rnd = mulberry32(i);
+    for (let k = 0; k < 16 + (i % 5) && g.phase !== 'done'; k++) applyAction(g, g.turn, botAction(g, g.turn, 'hard', rnd));
+    if (g.phase === 'done') continue;
+    const me = g.turn;
+    const a = botAction(g, me, 'god', () => 0.3);
+    assert.deepEqual(botAction(g, me, 'god', () => 0.3), a, 'keputusan God bisa diulang');
+    assert.ok(applyAction(structuredClone(g), me, a).ok, 'langkah God sah');
+  }
+});
+
+test('tawar: Sulit ke atas pakai ambang yang sama (Jago & God tidak menawar seagresif Mudah)', () => {
+  // tangan sedang: cukup untuk Mudah (ambang 6) tapi di bawah ambang Sulit/Jago/God (7)
+  const g = newHand(11, 0);
+  g.hands[0] = P('2 2 K Q J 10 9 8 7 6 5 4 3 4 5 6 7');
+  const s = bidStrength(g.hands[0]);
+  assert.ok(s >= 6 && s < 7, `kekuatan tangan uji = ${s}`);
+  for (const lv of ['hard', 'expert', 'god']) assert.equal(botAction(g, 0, lv, r).t, 'pass', `level ${lv}`);
+  assert.equal(botAction(g, 0, 'easy', r).t, 'call');
 });
 
 test('tawar: tangan kuat panggil, tangan lemah pass', () => {

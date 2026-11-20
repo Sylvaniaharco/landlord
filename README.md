@@ -3,15 +3,15 @@
 Doudizhu 3 pemain di browser, satu keluarga dengan **Mahjong Kung2** dan **Capsa Kung2** (akun & tampilan sama).
 Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo ini).
 
-- **Lawan 2 bot** (Mudah / Sedang / Sulit / Jago) — tanpa login, jalan di HP (juga offline). Meja **Latihan** (tanpa koin) atau meja koin
-  **25 / 50 / 100** pakai koin meja bot di HP (saldo awal 1.000, minimal 500 / 2.000 / 5.000, reset ke 1.000
+- **Lawan 2 bot** (Mudah / Sedang / Sulit / Jago / God) — tanpa login, jalan di HP (juga offline). Meja **Latihan** (tanpa koin) atau meja koin
+  **25 / 50 / 100 / 500** pakai koin meja bot di HP (saldo awal 1.000, minimal 500 / 2.000 / 5.000 / 50.000, reset ke 1.000
   jam 00.01 WIB kalau di bawah 500). Tangan bermeja koin yang ditinggal (keluar / app ditutup) dihitung kalah.
 - **Main bareng teman** — buat meja, bagikan kode 5 huruf / link `…/games/doudizhu/#room=KODE`. Kursi kosong diisi bot. Tanpa rating.
-- **Ranked** — butuh login Google (akun bersama). Pilih meja **25 / 50 / 100 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
-  saldo minimal 500 / 2.000 / 5.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
+- **Ranked** — butuh login Google (akun bersama). Pilih meja **25 / 50 / 100 / 500 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
+  saldo minimal 500 / 2.000 / 5.000 / 50.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
   Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + rating Doudizhu (Elo, tier Bronze → Master),
   papan peringkat & riwayat tangan. Saldo kurang dari minimal meja = dilepas dari meja.
-  Bot pengisi kursi: meja **50 & 100 pakai bot Jago**, meja 25 bot Sedang (`rankedLevel` di `src/engine/room.js`).
+  Bot pengisi kursi: meja **500 pakai bot God**, meja **50 & 100 bot Jago**, meja 25 bot Sedang (`rankedLevel` di `src/engine/room.js`).
 
 ## Stack
 
@@ -102,7 +102,14 @@ kursinya (tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar) — dites
   kartu yang belum terlihat (tetap tidak mengintip), tiap langkah dimainkan sampai tangan habis dengan bot Sulit, yang paling sering
   menang dipakai. Pilihan heuristik dapat bonus (`prior`) dan pass dapat bonus tambahan kalau teman yang terakhir main (`mate`),
   supaya pencarian tidak menyimpang hanya karena hasilnya seri — tanpa itu petani menimpa langkah temannya 35% (sekarang 6%).
-  ±17 ms per keputusan (paling lama ±95 ms). Dipakai di meja Ranked 50 & 100 dan bisa dipilih di meja lawan bot/teman.
+  ±20 ms per keputusan (paling lama ±95 ms). Dipakai di meja Ranked 50 & 100 dan bisa dipilih di meja lawan bot/teman.
+- **God:** Jago dengan pencarian lebih berat — 48 dunia (bukan 16) dan 96 dunia di akhir tangan, 9 langkah teratas (bukan 6),
+  mulai mencari lebih awal (`maxUnseen` 42), `prior` lebih kecil (0,1), **dan dunia yang diundi harus cocok dengan petunjuk
+  dari pass**: kalau lawan tadi pass pada kombinasi dari lawannya, dunia yang memberi dia langkah non-bom yang menang dibuang
+  (dicoba sampai 8 undian). ±80 ms per keputusan (±4x Jago; server hanya mengerjakan satu keputusan per alarm, jadi aman).
+  Diukur: **+1,57 poin/tangan di atas Sulit**, dan **+0,13 poin/tangan di atas Jago** (1.680 tangan; bedanya tipis — sebagian
+  besar kekuatan Monte Carlo sudah didapat Jago). Dipakai di meja Ranked 500 dan bisa dipilih di meja lawan bot/teman.
+  Setelannya di `SEARCH` (`src/engine/bot.js`) — Jago & God memakai kode pencarian yang sama, beda angkanya saja.
 - Simulasi 3000 tangan (`npm run sim`, ±0,8 ms/tangan): Tuan Tanah menang ±60%, ±0,4 bom/tangan; poin rata-rata Mudah −2,7 / Sedang
   +0,4 / Sulit +2,3 per tangan. Adu level: `npm run strength -- jago hard 150` → Jago **+0,6 … +1,1 poin/tangan** di atas Sulit
   (Sulit sendiri +0,44 di atas Sedang).
