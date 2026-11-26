@@ -38,15 +38,25 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
 ## Aturan kode
 
 - `src/engine/` murni (tanpa DOM), dipakai browser, Node, dan Worker. Jangan pakai `Math.random()` di engine; pakai `mulberry32`/`mixSeed`.
-- **Semua aturan di `src/engine/rules.config.js`** (bidding mode, show-kitty, pengali bom/roket/spring, sayap pesawat, empat+2, cap, waktu).
+- `combos.js`: apa yang diterima `classify()`/`readPlay()` harus bisa ditemukan juga oleh `allMoves()`/`legalMoves()`. Kalau tidak,
+  `canBeat()` salah → Pass otomatis di `src/main.js` membuang langkah sah, Saran buta, bot buta. (Sayap boleh dari satu rank, mis. 333444+55.)
+- **Semua aturan di `src/engine/rules.config.js`** (bidding mode, show-kitty, pengali bom/roket/spring, sayap pesawat, empat+2, cap, batas bagi ulang, waktu).
   Engine & bot membaca config, jangan menaruh angka aturan di tempat lain. Ubah aturan → update README + tes (`test/combos.test.js`, `test/game.test.js`).
 - `game.js`: satu tangan (state deterministik dari seed + urutan aksi, `applyAction`, `viewFor`). `viewFor` tidak boleh memuat tangan lawan,
   kartu dasar (kecuali untuk Tuan Tanah / `showKitty` / tangan selesai), atau seed.
 - `room.js`: logika meja murni untuk tiga jenis meja (`friends`, `ranked`, `practice`). `worker/room.js` hanya penyimpanan + WebSocket + alarm
   (`R.due` / `R.step`); mode Latihan (`src/net/local.js`) memakai fungsi yang sama di HP. Server memvalidasi semua aksi (`R.act` → `applyAction`).
-  `seat.id` (id HP / kunci kursi Ranked) dan `seat.userId` **tidak pernah** masuk `viewFor`.
+  `seat.id` (id HP / kunci kursi Ranked) dan `seat.userId` **tidak pernah** masuk `viewFor`. Meja teman: `start` hanya host, `next` (lanjut
+  ke tangan berikutnya) boleh siapa saja yang masih duduk — kalau host-nya diam, meja nyangkut.
+- Durable Object diuji di `test/worker.test.js`: `cloudflare:workers` diganti tiruan lewat loader hook (`test/helpers/cfstub.mjs`) dan
+  `Date.now` dikunci supaya alarm bisa dimajukan. Perubahan di `worker/room.js` / `worker/lobby.js` → jalankan `npm test`.
 - Ranked: hasil tiap tangan → `settlePayload` → `env.MAHJONG.settle` (aman diulang; gagal → coba lagi lewat alarm). Bentuk payload harus cocok
   dengan `cleanDdzSettle` di repo games-mahjong0hk (`worker/doudizhu.js`). Rumus rating & koin ada di sana, bukan di sini.
+  `settle()` dijaga `this.settling`: RPC-nya membuka input gate DO, jadi tanpa itu satu ronde bisa dikirim dua kali sekaligus.
+  **Tidak ada batas pengali** (`multiplierCap: 0`, keputusan Teddy): satu tangan besar memang boleh menghabiskan saldo — min entry meja
+  yang menjaga pemain koin tipis tetap di meja kecil.
+- `DdzRoom` mengabari `DdzLobby` (`reopen` / `release`) waktu meja Ranked longgar lagi atau ditutup, supaya meja lama dipakai lagi
+  dan pemain tidak kepecah ke meja baru yang isinya bot semua.
 - **Dua saldo** (pola Capsa): koin akun (server, bersama Mahjong & Capsa) hanya bergerak di Ranked — meja `room.ranked.stake` 25/50/100/500 (`STAKES` di `src/engine/wallet.js` = `DDZ_STAKES` di repo Mahjong),
   `DdzLobby.assign(stake, user)` antre per meja, `reserve`/`nextRanked` cek saldo minimal (`src/engine/wallet.js`), angka pasti dari server akun
   (`applySettle`). Koin meja bot (`ddz-wallet` di localStorage, tidak bisa dipercaya) hanya untuk mode lawan bot: dibayar di `practiceCoins`

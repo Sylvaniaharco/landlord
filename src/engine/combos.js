@@ -138,19 +138,50 @@ export function allMoves(hand, rules = RULES, opts = {}) {
   const push = (cards, type, main, len = 1) => moves.push({ cards, combo: { type, main, len, n: cards.length } });
   const few = !!opts.fewKickers;
 
-  // pilihan sayap: rank selain `exclude`, butuh `need` kartu per rank. few = rank termurah saja (kartu lepas dulu, rank kecil dulu)
+  /**
+   * Pilihan sayap/tambahan: `k` kelompok × `need` kartu, dari rank selain `exclude`. -> daftar kumpulan KARTU.
+   * few = pilihan termurah saja (kartu lepas dulu, rank kecil dulu), untuk bot supaya cepat.
+   * Biasanya tiap kelompok dari rank yang berbeda. Kalau rank berbeda tidak cukup, satu rank boleh menyumbang
+   * beberapa kelompok (mis. 333444 + 55 = pesawat + sayap, 3333 + 55 = empat + 2) — classify() memang menerimanya,
+   * jadi tanpa ini canBeat()/Saran/bot bakal bilang "tidak bisa mengalahkan" padahal langkahnya sah.
+   */
   const kickerSets = (exclude, need, k) => {
-    let cands = [];
+    const cands = [];
     for (let r = 0; r < 15; r++) if (!exclude.has(r) && cnt[r] >= need && (need === 1 || r < BJ)) cands.push(r);
     if (few) {
       const cost = (r) => (cnt[r] === need ? 0 : cnt[r] >= 3 ? 30 : 10) + r + (r >= R2 ? 40 : 0);
       cands.sort((a, b) => cost(a) - cost(b));
-      const sets = [];
-      if (cands.length >= k) sets.push(cands.slice(0, k));
-      if (cands.length > k) sets.push([...cands.slice(0, k - 1), cands[k]]);
-      return sets;
     }
-    return combos(cands, k);
+    let sets = [];
+    if (cands.length >= k) {
+      if (few) {
+        sets.push(cands.slice(0, k));
+        if (cands.length > k) sets.push([...cands.slice(0, k - 1), cands[k]]);
+      } else sets = combos(cands, k);
+    } else if (k > 1) {
+      // rank berbeda tidak cukup: pakai rank yang punya kartu lebih (tiap rank maks floor(cnt/need) kelompok)
+      const pool = [];
+      for (const r of cands) for (let i = Math.min(k, Math.floor(cnt[r] / need)); i > 0; i--) pool.push(r);
+      const seen = new Set();
+      for (const s of combos(pool, k)) {
+        const key = s.join(',');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        sets.push(s);
+        if (few && sets.length >= 2) break;
+      }
+    }
+    // rank -> kartu: rank yang muncul beberapa kali mengambil kartu yang berbeda
+    return sets.map((rs) => {
+      const at = new Map();
+      const out = [];
+      for (const r of rs) {
+        const i = at.get(r) || 0;
+        at.set(r, i + need);
+        out.push(...byRank[r].slice(i, i + need));
+      }
+      return out;
+    });
   };
 
   for (let r = 0; r < 15; r++) {
@@ -159,15 +190,15 @@ export function allMoves(hand, rules = RULES, opts = {}) {
     if (cnt[r] >= 3) {
       const t = byRank[r].slice(0, 3);
       if (rules.allowTripleAlone) push(t, 'triple', r);
-      if (rules.allowTriplePlusOne) for (const [k] of kickerSets(new Set([r]), 1, 1)) push([...t, byRank[k][0]], 'triple1', r);
-      if (rules.allowTriplePlusPair) for (const [k] of kickerSets(new Set([r]), 2, 1)) push([...t, ...byRank[k].slice(0, 2)], 'triple2', r);
+      if (rules.allowTriplePlusOne) for (const ks of kickerSets(new Set([r]), 1, 1)) push([...t, ...ks], 'triple1', r);
+      if (rules.allowTriplePlusPair) for (const ks of kickerSets(new Set([r]), 2, 1)) push([...t, ...ks], 'triple2', r);
     }
     if (cnt[r] === 4) {
       push(byRank[r].slice(), 'bomb', r);
       if (rules.allowQuadPlusTwo) {
         const ex = new Set([r]);
-        for (const ks of kickerSets(ex, 1, 2)) push([...byRank[r], byRank[ks[0]][0], byRank[ks[1]][0]], 'quad2', r);
-        for (const ks of kickerSets(ex, 2, 2)) push([...byRank[r], ...byRank[ks[0]].slice(0, 2), ...byRank[ks[1]].slice(0, 2)], 'quad4', r);
+        for (const ks of kickerSets(ex, 1, 2)) push([...byRank[r], ...ks], 'quad2', r);
+        for (const ks of kickerSets(ex, 2, 2)) push([...byRank[r], ...ks], 'quad4', r);
       }
     }
   }
@@ -187,10 +218,10 @@ export function allMoves(hand, rules = RULES, opts = {}) {
       if (!rules.allowAirplaneWings) continue;
       const ex = new Set(Array.from({ length: len }, (_, i) => s + i));
       if (body.length + len <= hand.length) {
-        for (const ks of kickerSets(ex, 1, len)) push([...body, ...ks.map((k) => byRank[k][0])], 'plane1', s, len);
+        for (const ks of kickerSets(ex, 1, len)) push([...body, ...ks], 'plane1', s, len);
       }
       if (body.length + 2 * len <= hand.length) {
-        for (const ks of kickerSets(ex, 2, len)) push([...body, ...ks.flatMap((k) => byRank[k].slice(0, 2))], 'plane2', s, len);
+        for (const ks of kickerSets(ex, 2, len)) push([...body, ...ks], 'plane2', s, len);
       }
     }
   }

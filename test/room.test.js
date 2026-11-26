@@ -220,3 +220,19 @@ test('Ranked: kursi dipesan tapi tidak pernah tersambung = dihitung kabur; yang 
   assert.equal(room.last.abandoned[i2], true, 'tidak pernah tersambung → kabur');
   assert.equal(room.last.abandoned[i1], false);
 });
+
+test('meja teman: siapa pun yang duduk boleh lanjut ke tangan berikutnya (bukan cuma pembuat meja)', () => {
+  const room = R.createRoom('ABCDE', A, 0);
+  assert.ok(R.join(room, B).ok);
+  assert.ok(R.start(room, A.id, 5, 0, rnd()).ok);
+  runHand(room, 0);
+  assert.ok(!R.next(room, 'zzzzzzzzzzzz', 6, 1, rnd()).ok, 'yang tidak duduk di meja ditolak');
+  assert.equal(room.hostId, A.id);
+  assert.ok(R.next(room, B.id, 6, 1, rnd()).ok, 'pemain biasa bisa melanjutkan');
+  assert.equal(room.round, 2);
+  // pemain yang sudah keluar tidak bisa
+  runHand(room, 1);
+  R.leave(room, B.id);
+  assert.ok(!R.next(room, B.id, 7, 2, rnd()).ok);
+  assert.ok(R.next(room, A.id, 7, 2, rnd()).ok);
+});

@@ -111,3 +111,38 @@ test('legalMoves: semua langkah sah, dan semuanya terbaca sama oleh classify', (
   assert.ok(!owns(hand, [99]));
   assert.equal(counts(hand)[6], 4);
 });
+
+test('sayap boleh dari satu rank kalau rank lain tidak cukup (canBeat & Saran tidak boleh buta)', () => {
+  // classify menerima 333444+55 sebagai pesawat + sayap (keputusan di README), jadi legalMoves wajib menemukannya juga —
+  // kalau tidak, Pass otomatis di src/main.js membuang langkah yang sah.
+  const cases = [
+    ['3 3 3 4 4 4 5 5', { type: 'plane1', main: -1, len: 2, n: 8 }],
+    ['3 3 3 4 4 4 5 5 5 5', { type: 'plane2', main: -1, len: 2, n: 10 }],
+    ['3 3 3 3 5 5', { type: 'quad2', main: -1, len: 1, n: 6 }],
+    ['3 3 3 3 5 5 5 5', { type: 'quad4', main: -1, len: 1, n: 8 }],
+  ];
+  for (const [h, prev] of cases) {
+    const hand = P(h);
+    assert.ok(readPlay(hand, prev), `${h} seharusnya sah`);
+    for (const opts of [{}, { fewKickers: true }]) {
+      const moves = legalMoves(hand, prev, undefined, opts);
+      assert.ok(moves.length, `${h} tidak ketemu di legalMoves ${JSON.stringify(opts)}`);
+      for (const m of moves) {
+        assert.equal(new Set(m.cards).size, m.cards.length, `kartu dobel: ${h}`);
+        assert.ok(owns(hand, m.cards), `bukan kartu sendiri: ${h}`);
+        assert.ok(classify(m.cards).some((c) => beats(c, prev)), `tidak mengalahkan: ${h}`);
+      }
+    }
+  }
+});
+
+test('semua langkah di allMoves memakai kartu nyata & tidak dobel (termasuk sayap dari satu rank)', () => {
+  for (const h of ['3 3 3 4 4 4 5 5 6 6 7 7', '3 3 3 3 4 4 5 5 5', '5 5 5 6 6 6 7 7 7 8 8 8', '3 3 3 4 4 4 5 5']) {
+    const hand = P(h);
+    for (const m of allMoves(hand)) {
+      assert.equal(new Set(m.cards).size, m.cards.length, `kartu dobel: ${h} -> ${m.cards}`);
+      assert.ok(owns(hand, m.cards), `bukan kartu sendiri: ${h} -> ${m.cards}`);
+      assert.ok(classify(m.cards).some((c) => c.type === m.combo.type && c.main === m.combo.main && c.len === m.combo.len), `${m.combo.type} ${m.cards}`);
+    }
+  }
+});

@@ -206,7 +206,7 @@ function showRules(then) {
     <ul>${b.mode === 'points' ? `<li>${tx('Tawar 1, 2, atau 3. Tawaran tertinggi jadi Tuan Tanah, pengali = tawarannya.')}</li>`
       : `<li>${tx('Giliran pertama: Panggil atau Pass. Setelah ada yang Panggil, pemain berikutnya boleh Rebut atau Pass.')}</li>
       <li>${tx('Tiap Panggil dan Rebut = pengali ×2. Pemanggil pertama dapat kesempatan terakhir merebut balik.')}</li>
-      <li>${tx('Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = kartu dibagi ulang.')}</li>`}
+      <li>${tx('Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = kartu dibagi ulang (maks {n}x, lalu pemain pertama jadi Tuan Tanah).', { n: R.maxRedeals })}</li>`}
       <li>${R.showKitty ? tx('3 kartu dasar dibuka ke semua pemain setelah Tuan Tanah dipilih.') : tx('3 kartu dasar tidak pernah dibuka: hanya Tuan Tanah yang menerimanya (20 kartu).')}</li></ul>
     <h3>${tx('Kombinasi')}</h3>
     <ul><li>${tx('Satu, pasang, tris; tris + 1, tris + pasang.')}</li>
@@ -955,8 +955,8 @@ function renderResult(view) {
     }
     let btns = `<button class="btn" data-r="peek" type="button">${tx('Lihat meja')}</button><button class="btn" data-r="leave" type="button">${tx('Keluar')}</button>`;
     if (v.kind === 'ranked') btns += `<span class="note" id="rsNext"></span>`;
-    else if (v.host === v.seat) btns += `<button class="btn primary" data-r="next" type="button">${tx('Lanjut')}</button>`;
-    else btns += `<span class="note">${tx('Menunggu pembuat meja…')}</span>`;
+    // meja teman & latihan: siapa pun yang duduk boleh melanjutkan, jadi meja tidak nyangkut kalau pembuatnya diam
+    else if (me >= 0) btns += `<button class="btn primary" data-r="next" type="button">${tx('Lanjut')}</button>`;
     box.innerHTML = `<div class="rs-panel"><div class="rs-head"><h2 class="${me < 0 ? '' : myWin ? 'win' : 'lose'}">${title}</h2>
       <span class="rs-sum">${me >= 0 ? signed(L.points[me]) : ''}</span></div>
       <div class="chips">${chips}</div>${lastPlay}${rating}
