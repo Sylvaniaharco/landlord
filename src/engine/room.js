@@ -135,10 +135,14 @@ export function start(room, id, seed, now, rnd) {
   return { ok: true };
 }
 
-/** Tangan berikutnya (meja teman / latihan, ditekan host di layar hasil). Kursi pemain yang keluar diganti bot. */
+/**
+ * Tangan berikutnya (meja teman / latihan, ditekan di layar hasil). Kursi pemain yang keluar diganti bot.
+ * Siapa pun yang masih duduk boleh melanjutkan — kalau hanya host, meja nyangkut waktu host-nya diam saja.
+ */
 export function next(room, id, seed, now, rnd = mulberry32(seed)) {
   if (room.status !== 'result') return { ok: false, error: 'Tangan belum selesai' };
-  if (id !== room.hostId) return { ok: false, error: 'Hanya pembuat meja yang bisa melanjutkan' };
+  const seat = seatOf(room, id);
+  if (seat < 0 || room.seats[seat].left) return { ok: false, error: 'Kamu tidak duduk di meja ini' };
   if (!activeHumans(room).length) return { ok: false, error: 'Tidak ada pemain' };
   room.seats = room.seats.map((s) => (human(s) && s.left ? null : s));
   fillBots(room, rnd);

@@ -7,6 +7,7 @@ Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo i
   **25 / 50 / 100 / 500** pakai koin meja bot di HP (saldo awal 1.000, minimal 500 / 2.000 / 5.000 / 50.000, reset ke 1.000
   jam 00.01 WIB kalau di bawah 500). Tangan bermeja koin yang ditinggal (keluar / app ditutup) dihitung kalah.
 - **Main bareng teman** — buat meja, bagikan kode 5 huruf / link `…/games/doudizhu/#room=KODE`. Kursi kosong diisi bot. Tanpa rating.
+  Hanya pembuat meja yang bisa *memulai*, tapi **siapa pun yang duduk** bisa menekan "Lanjut" ke tangan berikutnya.
 - **Ranked** — butuh login Google (akun bersama). Pilih meja **25 / 50 / 100 / 500 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
   saldo minimal 500 / 2.000 / 5.000 / 50.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
   Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + rating Doudizhu (Elo, tier Bronze → Master),
@@ -40,7 +41,8 @@ Ranked: HP minta tiket sekali pakai (`POST /games/mahjonghk/api/auth/ticket`), W
 
 - **Tawar:** Panggil (叫地主) / Pass, lalu Rebut (抢地主) / Pass. Tiap Panggil & Rebut = pengali ×2 (tanpa tawaran 1/2/3). Skor dasar 1.
   Mulai dari pemain acak di tangan pertama, lalu bergiliran. Yang pass sebelum ada panggilan tidak bisa merebut. Pemanggil pertama dapat
-  kesempatan terakhir merebut balik kalau ada yang merebut. Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = bagi ulang.
+  kesempatan terakhir merebut balik kalau ada yang merebut. Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = bagi ulang,
+  maksimal `maxRedeals` (3) kali beruntun — setelah itu pemain pertama jadi Tuan Tanah dengan pengali 1, supaya meja tidak menggantung.
 - **Kartu dasar tidak pernah dibuka**: Tuan Tanah langsung menerimanya (20 kartu); kartu jadi publik hanya saat dikeluarkan.
 - **Kombinasi:** satu, pasang, tris (boleh polos), tris+1, tris+pasang, straight 5+ (3..A), pasang berurutan 3+ (3..A), pesawat 2+ tris
   berurutan (3..A) polos / +1 kartu per tris / +1 pasang per tris (tidak dicampur, sayap tidak boleh rank pesawat), empat+2 kartu,
@@ -70,6 +72,7 @@ Keputusan yang diambil saat membuat (ubah di config kalau maunya lain):
 | `base` | 1 | skor dasar |
 | `showKitty` | `false` | `true` = 3 kartu dasar dibuka ke semua setelah Tuan Tanah dipilih |
 | `redealOnAllPass` | `true` | semua pass = bagi ulang (`false` = pemain pertama jadi Tuan Tanah) |
+| `maxRedeals` | 3 | batas bagi ulang beruntun; sesudahnya pemain pertama jadi Tuan Tanah |
 | `allowTripleAlone` / `allowTriplePlusOne` / `allowTriplePlusPair` | `true` | tris polos / +1 / +pasang |
 | `allowAirplaneWings` | `true` | pesawat boleh bersayap |
 | `allowQuadPlusTwo` | `true` | empat + 2 / empat + 2 pasang |
@@ -117,7 +120,7 @@ kursinya (tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar) — dites
 ## Main di lokal
 
 ```bash
-npm test            # node --test test/*.test.js (engine, bot + 600 tangan simulasi, meja/Ranked, i18n, akun)
+npm test            # node --test test/*.test.js (engine, bot + 600 tangan simulasi, meja/Ranked, Durable Object, i18n, akun)
 npm run sim         # 3000 tangan bot vs bot: cek langkah ilegal/macet + statistik
 npm run strength    # adu kekuatan level bot, mis. node scripts/strength.mjs expert hard 150
 npm run dev         # python3 -m http.server 8080 → http://localhost:8080 (hanya Latihan)

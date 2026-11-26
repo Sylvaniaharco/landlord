@@ -205,3 +205,16 @@ test('viewFor: tangan lawan & kartu dasar tidak bocor', () => {
   act(open, 2, { t: 'pass' });
   assert.deepEqual(viewFor(open, 2).kitty, open.kitty, 'showKitty = dibuka ke semua');
 });
+
+test('bagi ulang ada batasnya: setelah maxRedeals semua pass = pemain pertama jadi Tuan Tanah', () => {
+  const g = newHand(7, 0, makeRules({ maxRedeals: 2 }));
+  for (let round = 0; round < 3; round++) {
+    assert.equal(g.phase, 'bid', `putaran ${round} masih menawar`);
+    for (let i = 0; i < 3; i++) applyAction(g, g.turn, { t: 'pass' });
+  }
+  assert.equal(g.redeals, 2);
+  assert.equal(g.phase, 'play');
+  assert.equal(g.landlord, 0); // starter
+  assert.equal(g.mult.bid, 1);
+  assert.equal(g.hands[0].length, 20);
+});

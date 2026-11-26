@@ -16,6 +16,7 @@ export const RULES = Object.freeze({
   base: 1, // skor dasar per tangan
   showKitty: false, // 3 kartu dasar TIDAK pernah dibuka ke semua orang (hanya tuan tanah yang menerimanya); true = dibuka setelah tuan tanah dipilih
   redealOnAllPass: true, // semua pass = kartu dibagi ulang (giliran mulai tetap)
+  maxRedeals: 3, // batas bagi ulang beruntun; setelah itu pemain pertama jadi Tuan Tanah (pengali 1) supaya meja tidak menggantung
 
   // ---------- kombinasi ----------
   allowTripleAlone: true, // tris tanpa tambahan (333)

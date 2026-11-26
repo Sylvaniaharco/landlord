@@ -21,7 +21,7 @@ export class DdzLobby extends DurableObject {
     return this.env.ROOMS.get(this.env.ROOMS.idFromName(code));
   }
 
-  /** stake = 5/10/20 (koin akun per poin). user = { userId, name, avatar, rating, coins } (sudah diverifikasi). -> { ok, code, key } | { ok:false, error } */
+  /** stake = 25/50/100/500 (koin akun per poin). user = { userId, name, avatar, rating, coins } (sudah diverifikasi). -> { ok, code, key } | { ok:false, error } */
   async assign(stake, user) {
     const st = this.state;
     const key = randomKey();
@@ -61,4 +61,22 @@ export class DdzLobby extends DurableObject {
     }
   }
 
+  /**
+   * Meja Ranked bilang kursinya longgar lagi (pemain keluar / dilepas). Tanpa ini, meja yang pernah penuh tidak pernah
+   * ditawarkan lagi dan pemain baru selalu bikin meja baru — pemainnya jadi kepecah lawan bot semua.
+   */
+  async reopen(stake, code) {
+    const st = this.state;
+    if (st.open[stake]) return; // sudah ada meja lain yang menerima pemain
+    st.open[stake] = code;
+    await this.ctx.storage.put('state', st);
+  }
+
+  /** Meja ditutup / dihapus: jangan ditawarkan lagi. */
+  async release(stake, code) {
+    const st = this.state;
+    if (st.open[stake] !== code) return;
+    delete st.open[stake];
+    await this.ctx.storage.put('state', st);
+  }
 }

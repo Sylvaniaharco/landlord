@@ -25,7 +25,7 @@ export const EN = {
   'Tawar 1, 2, atau 3. Tawaran tertinggi jadi Tuan Tanah, pengali = tawarannya.': 'Bid 1, 2 or 3. Highest bid becomes Landlord; multiplier = the bid.',
   'Giliran pertama: Panggil atau Pass. Setelah ada yang Panggil, pemain berikutnya boleh Rebut atau Pass.': 'First round: Call or Pass. Once someone calls, the following players may Grab or Pass.',
   'Tiap Panggil dan Rebut = pengali ×2. Pemanggil pertama dapat kesempatan terakhir merebut balik.': 'Every Call and Grab doubles the multiplier. The first caller gets a last chance to grab it back.',
-  'Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = kartu dibagi ulang.': 'The last grabber (or the only caller) becomes Landlord. Everyone passes = redeal.',
+  'Perebut terakhir (atau satu-satunya pemanggil) jadi Tuan Tanah. Semua pass = kartu dibagi ulang (maks {n}x, lalu pemain pertama jadi Tuan Tanah).': 'The last grabber (or the only caller) becomes Landlord. Everyone passes = redeal (max {n}x, after that the first player becomes Landlord).',
   '3 kartu dasar dibuka ke semua pemain setelah Tuan Tanah dipilih.': 'The 3 bottom cards are shown to everyone once the Landlord is chosen.',
   '3 kartu dasar tidak pernah dibuka: hanya Tuan Tanah yang menerimanya (20 kartu).': 'The 3 bottom cards are never shown: only the Landlord receives them (20 cards).',
   'Kombinasi': 'Combinations', 'Satu, pasang, tris; tris + 1, tris + pasang.': 'Single, pair, triple; triple + 1, triple + pair.',
@@ -74,7 +74,7 @@ export const EN = {
   'Empat + 2': 'Four + 2', 'Empat + 2 pasang': 'Four + 2 pairs',
   // hasil
   'Tuan Tanah menang': 'Landlord wins', 'Petani menang': 'Peasants win', 'Kamu menang!': 'You win!', 'Kamu kalah': 'You lose', 'Rating': 'Rating',
-  'Menyimpan rating…': 'Saving rating…', 'Lihat meja': 'View table', 'Menunggu pembuat meja…': 'Waiting for the host…', 'Peran': 'Role', 'Tangan ini': 'This hand',
+  'Menyimpan rating…': 'Saving rating…', 'Lihat meja': 'View table', 'Peran': 'Role', 'Tangan ini': 'This hand',
   'Tangan berikutnya dalam {s} dtk': 'Next hand in {s}s', 'Ketuk meja untuk kembali ke hasil': 'Tap the table to go back to the result',
   // efek
   'BOM!': 'BOMB!', 'ROKET!': 'ROCKET!', 'SPRING!': 'SPRING!', 'ANTI-SPRING!': 'ANTI-SPRING!', '{name} jadi Tuan Tanah': '{name} is the Landlord',
@@ -101,7 +101,7 @@ export const EN = {
   'Bukan giliranmu': 'Not your turn', 'Kartu tidak cocok': 'Those are not your cards', 'Kartu itu tidak bisa mengalahkan': 'Those cards do not beat it',
   'Kamu harus mengeluarkan kartu': 'You have to play cards', 'Aksi tidak sah': 'Invalid action', 'Aksi tidak dikenal': 'Unknown action', 'Tangan sudah selesai': 'The hand is over',
   'Bukan waktunya': 'Not now', 'Bukan kursimu': 'Not your seat', 'Permainan sudah mulai': 'The game has already started',
-  'Hanya pembuat meja yang bisa memulai': 'Only the host can start', 'Hanya pembuat meja yang bisa melanjutkan': 'Only the host can continue',
+  'Hanya pembuat meja yang bisa memulai': 'Only the host can start', 'Kamu tidak duduk di meja ini': 'You are not seated at this table',
   'Tangan belum selesai': 'The hand is not over yet', 'Tidak ada pemain': 'No players', 'Kursi tidak ditemukan': 'Seat not found', 'Meja sudah ditutup': 'The table is closed',
   'Koneksi putus terlalu lama, kursimu diisi bot': 'You were offline too long; a bot took your seat',
   'Kamu dikeluarkan dari meja karena tidak aktif 2 tangan': 'You were removed from the table for being inactive for 2 hands',

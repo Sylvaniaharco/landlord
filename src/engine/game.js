@@ -68,7 +68,8 @@ function afterBid(g) {
   if (b.pos < 3) { g.turn = b.queue[b.pos]; return; }
   // putaran pertama selesai
   if (b.candidate < 0) {
-    if (!g.rules.redealOnAllPass) return becomeLandlord(g, g.starter);
+    // semua pass terus-menerus bikin meja (dan alarm bot di server) menggantung: setelah maxRedeals, pemain pertama jadi Tuan Tanah
+    if (!g.rules.redealOnAllPass || g.redeals >= (g.rules.maxRedeals ?? Infinity)) return becomeLandlord(g, g.starter);
     g.redeals++;
     pushLog(g, { k: 'redeal', seat: -1 });
     dealCards(g);

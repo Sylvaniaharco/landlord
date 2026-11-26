@@ -5,7 +5,7 @@ import * as R from '../src/engine/room.js';
 
 const IDLE_MS = 10 * 60 * 1000; // meja tanpa koneksi dihapus setelah segini
 const SETTLE_RETRY_MS = 3000; // server akun tidak menjawab: coba lagi segini kemudian
-const SETTLE_TRIES = 8;
+export const SETTLE_TRIES = 8;
 
 const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 
@@ -13,9 +13,22 @@ export class DdzRoom extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.room = null;
+    this.settling = false; // settle() sedang menunggu server akun (lihat pump())
     ctx.blockConcurrencyWhile(async () => {
       this.room = (await ctx.storage.get('room')) || null;
     });
+  }
+
+  /** Kabari pencari meja Ranked (DdzLobby). Gagal di sini tidak boleh merusak meja. */
+  async tellLobby(method) {
+    const r = this.room;
+    const stake = r?.kind === 'ranked' ? r.ranked?.stake || 0 : 0;
+    if (!stake) return;
+    try {
+      await this.env.LOBBY.get(this.env.LOBBY.idFromName('main'))[method](stake, r.code);
+    } catch (e) {
+      console.error('lobby ' + method, r.code, String(e?.message || e));
+    }
   }
 
   async save() {
@@ -140,7 +153,16 @@ export class DdzRoom extends DurableObject {
   /** Simpan, kirim tampilan ke semua, pasang alarm berikutnya. */
   async pump(closing = null) {
     const r = this.room;
-    if (r.kind === 'ranked' && r.status === 'result' && r.last && !r.last.settled) await this.settle();
+    // settle() menunggu RPC ke server akun; selama menunggu, pesan WebSocket lain bisa masuk dan memanggil pump() lagi.
+    // Tanpa penjaga ini satu ronde bisa dikirim dua kali sekaligus (server akun aman diulang, tapi jatah SETTLE_TRIES habis percuma).
+    if (r.kind === 'ranked' && r.status === 'result' && r.last && !r.last.settled && !this.settling) {
+      this.settling = true;
+      try {
+        await this.settle();
+      } finally {
+        this.settling = false;
+      }
+    }
     R.fixHost(r, (id) => this.isConnected(id, closing));
     await this.save();
     this.broadcast(closing);
@@ -200,14 +222,18 @@ export class DdzRoom extends DurableObject {
         for (const { ws } of this.sockets()) {
           try { ws.close(4000, 'tutup'); } catch { /* sudah tertutup */ }
         }
+        await this.tellLobby('release');
         await this.ctx.storage.deleteAll();
         this.room = null;
         return;
       }
+      // kursi longgar lagi (pemain keluar / dilepas): tawarkan meja ini lagi ke pencari meja, jangan bikin meja baru terus
+      if (due === 'next' && R.joinable(r)) await this.tellLobby('reopen');
       if (due) return this.pump();
     }
     // ruang tunggu / layar hasil: hapus meja yang sudah tidak ada orangnya
     if (!this.sockets().length) {
+      await this.tellLobby('release');
       await this.ctx.storage.deleteAll();
       this.room = null;
       return;
