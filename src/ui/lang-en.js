@@ -104,7 +104,7 @@ export const EN = {
   'Bukan giliranmu': 'Not your turn', 'Kartu tidak cocok': 'Those are not your cards', 'Kartu itu tidak bisa mengalahkan': 'Those cards do not beat it',
   'Kamu harus mengeluarkan kartu': 'You have to play cards', 'Aksi tidak sah': 'Invalid action', 'Aksi tidak dikenal': 'Unknown action', 'Tangan sudah selesai': 'The hand is over',
   'Bukan waktunya': 'Not now', 'Bukan kursimu': 'Not your seat', 'Permainan sudah mulai': 'The game has already started',
-  'Hanya pembuat meja yang bisa memulai': 'Only the host can start', 'Kamu tidak duduk di meja ini': 'You are not seated at this table',
+  'Hanya pembuat meja yang bisa memulai': 'Only the host can start', 'Kamu tidak duduk di meja ini': 'You are not seated at this table', 'Tangan berikutnya jalan sendiri': 'The next hand starts on its own',
   'Tangan belum selesai': 'The hand is not over yet', 'Tidak ada pemain': 'No players', 'Kursi tidak ditemukan': 'Seat not found', 'Meja sudah ditutup': 'The table is closed',
   'Koneksi putus terlalu lama, kursimu diisi bot': 'You were offline too long; a bot took your seat',
   'Kamu dikeluarkan dari meja karena tidak aktif 2 tangan': 'You were removed from the table for being inactive for 2 hands',

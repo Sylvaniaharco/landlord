@@ -148,6 +148,7 @@ export function start(room, id, seed, now, rnd) {
  */
 export function next(room, id, seed, now, rnd = mulberry32(seed)) {
   if (room.status !== 'result') return { ok: false, error: 'Tangan belum selesai' };
+  if (room.kind === 'ranked') return { ok: false, error: 'Tangan berikutnya jalan sendiri' }; // dijadwalkan server, bukan ditekan pemain
   const seat = seatOf(room, id);
   if (seat < 0 || room.seats[seat].left) return { ok: false, error: 'Kamu tidak duduk di meja ini' };
   if (!activeHumans(room).length) return { ok: false, error: 'Tidak ada pemain' };

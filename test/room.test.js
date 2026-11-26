@@ -237,6 +237,17 @@ test('meja teman: siapa pun yang duduk boleh lanjut ke tangan berikutnya (bukan 
   assert.ok(R.next(room, A.id, 7, 2, rnd()).ok);
 });
 
+test('Ranked: tangan berikutnya dijadwalkan server, pemain tidak bisa memaksanya', () => {
+  const room = R.createRanked('RANK1', 0, 25);
+  assert.ok(R.reserve(room, { key: 'k1k1k1k1k1k1', userId: 'u1', name: 'Ani', rating: 1000, coins: 5000 }, 0).ok);
+  R.startRanked(room, 5, 0, rnd());
+  runHand(room, 0);
+  assert.equal(room.status, 'result');
+  // kursinya sah, tapi meja Ranked tetap menolak: tanpa ini pemain bisa memaksa tangan baru di meja koin
+  assert.equal(R.next(room, 'k1k1k1k1k1k1', 6, 1, rnd()).ok, false);
+  assert.equal(room.round, 1);
+});
+
 test('Ranked: bonus harian dari server akun ikut ke layar hasil', () => {
   const room = R.createRanked('RANK1', 0, 25);
   assert.ok(R.reserve(room, { key: 'k1k1k1k1k1k1', userId: 'u1', name: 'Ani', rating: 1000, coins: 5000 }, 0).ok);
