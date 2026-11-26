@@ -26,7 +26,7 @@ test('semua teks tx(\'...\') dan data-t punya terjemahan English', () => {
 test('kata dari daftar (level bot, jenis kombinasi, tawar, pengali) dan pesan error server punya terjemahan', () => {
   const main = readFileSync('src/main.js', 'utf8');
   const words = [...Object.values(LEVELS), ...Object.values(TYPE_NAMES)];
-  for (const name of ['BID_WORDS', 'MULT_WORDS']) {
+  for (const name of ['BID_WORDS', 'MULT_WORDS', 'EMOTE_WORDS']) {
     const obj = main.match(new RegExp(`const ${name} = \\{([^}]*)\\}`))[1];
     words.push(...[...obj.matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((w) => !/^[a-z0-9]+$/.test(w)));
   }

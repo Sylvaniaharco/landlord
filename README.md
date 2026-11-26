@@ -7,10 +7,12 @@ Live di **https://sylvaniaharco.com/games/doudizhu/** (Worker `doudizhu`, repo i
   **25 / 50 / 100 / 500** pakai koin meja bot di HP (saldo awal 1.000, minimal 500 / 2.000 / 5.000 / 50.000, reset ke 1.000
   jam 00.01 WIB kalau di bawah 500). Tangan bermeja koin yang ditinggal (keluar / app ditutup) dihitung kalah.
 - **Main bareng teman** — buat meja, bagikan kode 5 huruf / link `…/games/doudizhu/#room=KODE`. Kursi kosong diisi bot. Tanpa rating.
+  Ada **emote** (8 kata jadi, bukan chat bebas) yang muncul sebagai gelembung di atas kursi; jalan juga di Ranked.
   Hanya pembuat meja yang bisa *memulai*, tapi **siapa pun yang duduk** bisa menekan "Lanjut" ke tangan berikutnya.
 - **Ranked** — butuh login Google (akun bersama). Pilih meja **25 / 50 / 100 / 500 koin per poin** (koin akun yang sama dengan Mahjong & Capsa,
   saldo minimal 500 / 2.000 / 5.000 / 50.000). Pencari meja otomatis per meja; kalau 15 dtk belum ada lawan, kursi kosong diisi bot (🤖).
-  Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + rating Doudizhu (Elo, tier Bronze → Master),
+  Tiap tangan: koin = poin × meja (saldo tidak bisa di bawah 0, yang kabur tidak dapat untung) + **bonus harian 100 koin** di tangan
+  pertama tiap hari WIB (satu bonus per hari per akun, dibagi dengan Mahjong & Capsa Banting) + rating Doudizhu (Elo, tier Bronze → Master),
   papan peringkat & riwayat tangan. Saldo kurang dari minimal meja = dilepas dari meja.
   Bot pengisi kursi: meja **500 pakai bot God**, meja **50 & 100 bot Jago**, meja 25 bot Sedang (`rankedLevel` di `src/engine/room.js`).
 

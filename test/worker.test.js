@@ -128,6 +128,29 @@ test('meja teman: ping dibalas pong, aksi ngawur ditolak, keluar melepas kursi d
   assert.equal(ro.room.seats.filter(Boolean).length, 1, 'putus di ruang tunggu = kursi dilepas');
 });
 
+test('emote sampai ke semua pemain; teks bebas & kiriman beruntun diabaikan', async () => {
+  const ro = await makeRoom();
+  await ro.init('ABCDE', { id: 'aaaaaaaaaaaa', name: 'Ani' }, 'normal');
+  const a = await connect(ro, { id: 'aaaaaaaaaaaa', name: 'Ani' });
+  const b = await connect(ro, { id: 'bbbbbbbbbbbb', name: 'Budi' });
+
+  await say(ro, a, { t: 'say', k: 'halo' });
+  assert.deepEqual(b.last('state').view.chat.map((c) => c.k), ['halo'], 'pemain lain menerimanya');
+  assert.equal(b.last('state').view.chat[0].seat, 0);
+
+  const before = b.msgs('state').length;
+  await say(ro, a, { t: 'say', k: 'gg' });
+  assert.equal(b.msgs('state').length, before, 'terlalu cepat: tidak ada yang dikirim ulang');
+  await say(ro, a, { t: 'say', k: '<script>alert(1)</script>' });
+  assert.equal(b.msgs('state').length, before, 'teks bebas diabaikan');
+  assert.equal(a.msgs('error').length, 0, 'emote yang ditolak tidak bikin pesan error');
+
+  advance(3000);
+  await say(ro, b, { t: 'say', k: 'gg' });
+  assert.deepEqual(a.last('state').view.chat.map((c) => [c.seat, c.k]), [[0, 'halo'], [1, 'gg']]);
+  assert.equal(JSON.stringify(a.last('state').view).includes('bbbbbbbbbbbb'), false, 'id pemain tidak ikut');
+});
+
 test('Ranked: reserve → mulai sendiri → tangan selesai → koin & rating dari server akun masuk ke pemain', async () => {
   const calls = [];
   const settle = async (p) => {

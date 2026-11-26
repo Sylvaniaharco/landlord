@@ -5,7 +5,7 @@ import { RANKS, rankOf, counts, sortHand } from './engine/cards.js';
 import { readPlay, canBeat, TYPE_NAMES } from './engine/combos.js';
 import { hints, LEVELS, DEFAULT_LEVEL, validLevel } from './engine/bot.js';
 import { RULES } from './engine/rules.config.js';
-import { ROOM_CODE } from './engine/room.js';
+import { ROOM_CODE, EMOTES, SAY_SHOW_MS } from './engine/room.js';
 import { clampAvatar, AVATAR_COUNT } from './engine/roster.js';
 import { cardEl, backEl } from './ui/cardview.js';
 import { sfx, setSound } from './ui/sfx.js';
@@ -307,7 +307,7 @@ const AUTO_PASS_MS = 900; // jeda sebelum Pass otomatis, supaya pemain sempat li
 let T = null; // meja yang sedang dibuka: { session, kind, code, view, seat, offset, logSeen, sel:Set, hint, handKey, timer }
 
 function openTable(kind, code, session) {
-  T = { kind, code, session, view: null, seat: 0, offset: 0, logSeen: -1, sel: new Set(), hint: null, handKey: '', timer: 0, lastTurn: -2, round: 0, newCards: null, autoPass: null };
+  T = { kind, code, session, view: null, seat: 0, offset: 0, logSeen: -1, sel: new Set(), hint: null, handKey: '', timer: 0, lastTurn: -2, round: 0, newCards: null, autoPass: null, chatSeen: null };
   T.timer = setInterval(tick, 250);
   closeModal();
   show('table');
@@ -452,6 +452,8 @@ const seatEl = (d) => $(`.seat[data-seat="${d}"]`);
 const playedEl = (d) => $(`.played[data-played="${d}"]`);
 const now = () => Date.now() + (T?.offset || 0);
 const BID_WORDS = { call: 'Panggil', grab: 'Rebut', pass: 'Pass', bid1: '1 poin', bid2: '2 poin', bid3: '3 poin' };
+// Emote meja online: daftar tertutup (kuncinya di src/engine/room.js), jadi tidak ada teks bebas yang perlu dimoderasi.
+const EMOTE_WORDS = { halo: '👋 Halo!', ayo: '⏱️ Ayo dong', mantap: '👏 Mantap!', wow: '😮 Wow!', aduh: '😵 Aduh…', hoki: '🍀 Hoki banget', maaf: '🙏 Maaf', gg: '🎉 GG!' };
 const MULT_WORDS = { call: 'Panggil', grab: 'Rebut', bid: 'Tawaran', bomb: 'Bom', rocket: 'Roket', spring: 'Spring', anti: 'Anti-spring' };
 
 function onState(v, serverNow) {
@@ -460,6 +462,21 @@ function onState(v, serverNow) {
   T.view = v;
   T.seat = Math.max(0, v.seat);
   if (T.kind === 'practice') practiceCoins(v);
+  // bunyi untuk emote baru dari orang lain (yang sendiri sudah berbunyi waktu ditekan)
+  const top = v.chat?.at(-1);
+  if (top && top.id > (T.chatSeen ?? 0)) {
+    const fresh = T.chatSeen == null ? [] : v.chat.filter((c) => c.id > T.chatSeen && c.seat !== v.seat);
+    T.chatSeen = top.id;
+    if (fresh.length) {
+      sfx('tap');
+      // layar hasil menutupi meja, jadi gelembungnya tidak kelihatan: tampilkan sebagai toast
+      const res = $('#result');
+      if (!res.hidden && !res.classList.contains('peek')) {
+        const last = fresh.at(-1);
+        toast(`${v.seats[last.seat]?.name || ''}: ${tx(EMOTE_WORDS[last.k] || last.k)}`, 2500);
+      }
+    }
+  }
   render(v);
 }
 
@@ -498,6 +515,7 @@ function render(v) {
     : T.kind === 'ranked' ? `<b>Ranked${v.stake ? ` ${v.stake}` : ''}</b>${v.ranked?.rating != null ? ` · ${tx('rating')} ${fmt(v.ranked.rating)}` : ''}`
       : `${tx('Meja')} <b>${esc(v.code)}</b> · ${tx('bareng teman')}`;
   $('#tbInfo').innerHTML = `${info}${v.round ? `<br>${tx('Tangan {n}', { n: v.round })}` : ''}`;
+  $('#btnSay').hidden = T.kind === 'practice' || v.seat < 0; // emote hanya di meja online (ke bot tidak ada gunanya)
   applyStatic($('#table'));
   renderSeats(v);
   renderKitty(v);
@@ -587,15 +605,33 @@ function renderSeats(v) {
         $('b', st).textContent = n;
       }
     }
-    // gelembung: aksi tawar terakhir kursi ini (selama menawar)
+  }
+  renderSay(v);
+}
+
+/** Gelembung di atas/bawah kursi: emote yang baru dikirim, kalau tidak ada = aksi tawar terakhir. Dipanggil juga dari tick() supaya kedaluwarsa. */
+function renderSay(v) {
+  const g = v.game;
+  const t = now();
+  for (let d = 0; d < 3; d++) {
+    const k = toSeat(d), el = seatEl(d);
     const say = $('.say', el);
-    let text = '';
-    if (g?.phase === 'bid' && v.status === 'playing') {
+    if (!say) continue;
+    const emote = (v.chat || []).filter((c) => c.seat === k && t - c.at < SAY_SHOW_MS).at(-1);
+    let text = '', hot = false;
+    if (emote) {
+      text = tx(EMOTE_WORDS[emote.k] || emote.k);
+      hot = true;
+    } else if (g?.phase === 'bid' && v.status === 'playing') {
       const a = g.bid.acts.filter((x) => x.seat === k).at(-1);
-      if (a) text = tx(BID_WORDS[a.t] || a.t);
+      if (a) {
+        text = tx(BID_WORDS[a.t] || a.t);
+        hot = text !== tx('Pass');
+      }
     }
-    say.textContent = text;
-    say.classList.toggle('hot', !!text && text !== tx('Pass'));
+    if (say.textContent !== text) say.textContent = text;
+    say.classList.toggle('hot', !!text && hot);
+    say.classList.toggle('emote', !!emote);
   }
 }
 
@@ -949,6 +985,8 @@ function renderResult(view) {
       const parts = [];
       if (L.myRating != null) parts.push(`<span class="${cls(L.myRating)}">${tx('Rating')} ${signed(L.myRating)}${v.ranked?.rating != null ? ` → ${fmt(v.ranked.rating)}` : ''}</span>`);
       if (L.myCoins != null && L.settled) parts.push(`<span class="${cls(L.myCoins)}"><i class="coin"></i> ${signed(L.myCoins)}${v.ranked?.coins != null ? ` → ${fmt(v.ranked.coins)}` : ''}</span>`);
+      // bonus harian: tangan Ranked pertama hari itu (dihitung server akun, dompet yang sama dengan Mahjong & Capsa Banting)
+      if (L.myBonus > 0 && L.settled) parts.push(`<span class="pos">🎁 ${tx('bonus harian')} ${signed(L.myBonus)}</span>`);
       rating = parts.length ? `<p class="rs-rating">${parts.join(' · ')}</p>` : L.settled ? '' : `<p class="rs-rating">${tx('Menyimpan rating…')}</p>`;
     } else if (v.kind === 'practice' && v.stake && T.paid?.round === v.round) {
       rating = `<p class="rs-rating ${cls(T.paid.delta)}"><i class="coin"></i> ${signed(T.paid.delta)} → ${fmt(wallet.coins)} <small>(${tx('koin meja bot')})</small></p>`;
@@ -1079,9 +1117,25 @@ function tick() {
   const rk = $('#rkCount');
   if (rk && v.ranked) rk.textContent = Math.max(0, Math.ceil((v.ranked.startAt - now()) / 1000));
   if (v.status === 'result') updateResultCountdown();
+  if (v.chat?.length) renderSay(v); // gelembung emote hilang sendiri setelah SAY_SHOW_MS
 }
 
 // ---------- riwayat kartu & penghitung kartu ----------
+// ---------- emote (meja online) ----------
+$('#btnSay').addEventListener('click', () => {
+  sfx('tap');
+  const m = modal(`<h2>${tx('Emote')}</h2><p>${tx('Dikirim ke semua yang ada di meja.')}</p>
+    <div class="emotes">${EMOTES.map((k) => `<button class="btn" data-say="${k}" type="button">${esc(tx(EMOTE_WORDS[k]))}</button>`).join('')}</div>
+    <div class="rs-btns"><button class="btn" data-a="close" type="button">${tx('Tutup')}</button></div>`);
+  m.addEventListener('click', (e) => {
+    const k = e.target.closest('[data-say]')?.dataset.say;
+    if (!k) return;
+    sfx('tap');
+    send({ t: 'say', k });
+    closeModal();
+  });
+});
+
 $('#btnHistory').addEventListener('click', () => {
   sfx('tap');
   const v = T?.view;
