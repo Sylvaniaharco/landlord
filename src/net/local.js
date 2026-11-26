@@ -23,6 +23,7 @@ export class LocalTable {
     if (m.t === 'act') res = R.act(r, this.seat, m.a, now);
     else if (m.t === 'next') res = R.next(r, this.user.id, seed(), now, Math.random);
     else if (m.t === 'takeover') res = R.takeover(r, this.seat);
+    else if (m.t === 'say') R.say(r, this.seat, m.k, now);
     else return;
     if (res && !res.ok && res.error) this.h.onError?.(res.error);
     this.pump();

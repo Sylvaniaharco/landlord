@@ -126,6 +126,7 @@ export class DdzRoom extends DurableObject {
     if (m.t === 'start') res = R.start(r, id, seed(), now, Math.random);
     else if (m.t === 'next') res = r.kind === 'ranked' ? null : R.next(r, id, seed(), now, Math.random);
     else if (m.t === 'takeover') res = R.takeover(r, seat);
+    else if (m.t === 'say') { if (!R.say(r, seat, m.k, now).ok) return; } // ditolak (kunci tidak dikenal / terlalu cepat): diam saja
     else if (m.t === 'act') res = R.act(r, seat, m.a, now);
     else if (m.t === 'leave') {
       R.leave(r, id);

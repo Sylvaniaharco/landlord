@@ -50,6 +50,9 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   ke tangan berikutnya) boleh siapa saja yang masih duduk — kalau host-nya diam, meja nyangkut.
 - Durable Object diuji di `test/worker.test.js`: `cloudflare:workers` diganti tiruan lewat loader hook (`test/helpers/cfstub.mjs`) dan
   `Date.now` dikunci supaya alarm bisa dimajukan. Perubahan di `worker/room.js` / `worker/lobby.js` → jalankan `npm test`.
+- **Bonus harian** 100 koin di tangan Ranked pertama tiap hari dihitung **server akun** (`ddzSettle` di repo games-mahjong0hk,
+  kolom `wallets.bonus_day` yang sama dengan Mahjong & Capsa Banting). Di sini cuma ditampilkan: `applySettle` → `room.last.bonus` →
+  `viewFor(...).last.myBonus` → layar hasil. Jangan pernah menghitung koin/bonus di HP.
 - Ranked: hasil tiap tangan → `settlePayload` → `env.MAHJONG.settle` (aman diulang; gagal → coba lagi lewat alarm). Bentuk payload harus cocok
   dengan `cleanDdzSettle` di repo games-mahjong0hk (`worker/doudizhu.js`). Rumus rating & koin ada di sana, bukan di sini.
   `settle()` dijaga `this.settling`: RPC-nya membuka input gate DO, jadi tanpa itu satu ronde bisa dikirim dua kali sekaligus.
@@ -76,7 +79,12 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
   (1.680 tangan, tipis) dan +1,57 di atas Sulit.
   Ubah bot → ukur lagi dengan `npm run strength` (mis. `node scripts/strength.mjs god expert 60`), jangan
   menaruh adu kekuatan di `npm test` (ratusan tangan, terlalu lama & berisik).
+- **Emote** di meja online (`EMOTES` di `src/engine/room.js`, tulisannya `EMOTE_WORDS` di `src/main.js`): daftar tertutup, klien hanya
+  mengirim kuncinya — **jangan** pernah menerima teks bebas dari HP (tidak ada yang perlu dimoderasi, dan emote ikut terjemahan).
+  Satu per kursi tiap `SAY_COOLDOWN_MS`, ditolak diam-diam. `room.chat` hanya memuat `{id, seat, k, at}` (tanpa id pemain).
+  Disembunyikan di mode Latihan. Di Ranked ini kanal informasi kecil antar pemain — kalau nanti anti-kolusi diperketat, tinjau lagi.
 - Teks UI bahasa Indonesia lewat `tx('...')` (atau `data-t` di HTML); terjemahan English di `src/ui/lang-en.js`, dicek `test/i18n.test.js`.
+  `EMOTE_WORDS` ikut dicek di situ, jadi emote baru wajib punya terjemahan.
 - Akun: `src/ui/account.js` memanggil API Mahjong dari origin yang sama (`/me`, `/config`, `/auth/logout`, `/auth/ticket`, `/errors` mode
   `doudizhu`, `/doudizhu/leaderboard`, `/doudizhu/me`). Login `?next=doudizhu`. Aktif hanya kalau dibuka dari `/games/doudizhu/`.
 - Bot = karakter Mahjong Kung2 (`src/engine/roster.js` + `avatars/` disalin dari repo capsa/mahjong). Avatar pemain ikut `hkmj-settings-v1`.

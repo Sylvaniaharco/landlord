@@ -74,7 +74,10 @@ export const EN = {
   'Empat + 2': 'Four + 2', 'Empat + 2 pasang': 'Four + 2 pairs',
   // hasil
   'Tuan Tanah menang': 'Landlord wins', 'Petani menang': 'Peasants win', 'Kamu menang!': 'You win!', 'Kamu kalah': 'You lose', 'Rating': 'Rating',
-  'Menyimpan rating…': 'Saving rating…', 'Lihat meja': 'View table', 'Peran': 'Role', 'Tangan ini': 'This hand',
+  'Menyimpan rating…': 'Saving rating…', 'Lihat meja': 'View table', 'bonus harian': 'daily bonus', 'Emote': 'Emote', 'Dikirim ke semua yang ada di meja.': 'Sent to everyone at the table.',
+  '\ud83d\udc4b Halo!': '\ud83d\udc4b Hi!', '\u23f1\ufe0f Ayo dong': '\u23f1\ufe0f Come on', '\ud83d\udc4f Mantap!': '\ud83d\udc4f Nice!', '\ud83d\ude2e Wow!': '\ud83d\ude2e Wow!',
+  '\ud83d\ude35 Aduh\u2026': '\ud83d\ude35 Ouch\u2026', '\ud83c\udf40 Hoki banget': '\ud83c\udf40 So lucky', '\ud83d\ude4f Maaf': '\ud83d\ude4f Sorry', '\ud83c\udf89 GG!': '\ud83c\udf89 GG!',
+  'Peran': 'Role', 'Tangan ini': 'This hand',
   'Tangan berikutnya dalam {s} dtk': 'Next hand in {s}s', 'Ketuk meja untuk kembali ke hasil': 'Tap the table to go back to the result',
   // efek
   'BOM!': 'BOMB!', 'ROKET!': 'ROCKET!', 'SPRING!': 'SPRING!', 'ANTI-SPRING!': 'ANTI-SPRING!', '{name} jadi Tuan Tanah': '{name} is the Landlord',

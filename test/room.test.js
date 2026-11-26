@@ -236,3 +236,49 @@ test('meja teman: siapa pun yang duduk boleh lanjut ke tangan berikutnya (bukan 
   assert.ok(!R.next(room, B.id, 7, 2, rnd()).ok);
   assert.ok(R.next(room, A.id, 7, 2, rnd()).ok);
 });
+
+test('Ranked: bonus harian dari server akun ikut ke layar hasil', () => {
+  const room = R.createRanked('RANK1', 0, 25);
+  assert.ok(R.reserve(room, { key: 'k1k1k1k1k1k1', userId: 'u1', name: 'Ani', rating: 1000, coins: 5000 }, 0).ok);
+  R.startRanked(room, 5, 0, rnd());
+  const seat = R.seatOf(room, 'k1k1k1k1k1k1');
+  runHand(room, 0);
+  assert.deepEqual(room.last.bonus, [0, 0, 0]);
+  R.applySettle(room, { u1: { delta: 3, rating: 1003, tier: 'bronze', coinDelta: -50, coins: 5050, bonus: 100 } });
+  assert.equal(room.last.bonus[seat], 100);
+  assert.equal(R.viewFor(room, seat).last.myBonus, 100);
+  assert.equal(room.seats[seat].coins, 5050, 'saldo dari server akun (sudah termasuk bonus)');
+  // jawaban tanpa bonus (server akun versi lama) tetap jalan
+  room.last.bonus = [0, 0, 0];
+  R.applySettle(room, { u1: { delta: 3, rating: 1003, tier: 'bronze', coinDelta: -50, coins: 4950 } });
+  assert.equal(R.viewFor(room, seat).last.myBonus, 0);
+});
+
+test('emote: hanya kunci dari daftar, dibatasi waktunya, dan tidak membocorkan id pemain', () => {
+  const room = R.createRoom('ABCDE', A, 0);
+  assert.ok(R.join(room, B).ok);
+  assert.ok(R.start(room, A.id, 5, 0, rnd()).ok);
+  const sa = R.seatOf(room, A.id), sb = R.seatOf(room, B.id);
+
+  assert.ok(R.say(room, sa, R.EMOTES[0], 1000).ok);
+  assert.ok(!R.say(room, sa, R.EMOTES[1], 1000 + R.SAY_COOLDOWN_MS - 1).ok, 'terlalu cepat');
+  assert.ok(R.say(room, sa, R.EMOTES[1], 1000 + R.SAY_COOLDOWN_MS).ok);
+  assert.ok(!R.say(room, sb, 'teks bebas dari HP', 9999).ok, 'teks bebas ditolak');
+  assert.ok(!R.say(room, sb, '<img onerror=x>', 9999).ok);
+  assert.ok(!R.say(room, 2, R.EMOTES[0], 9999).ok, 'kursi bot tidak bisa emote');
+  assert.ok(R.say(room, sb, R.EMOTES[2], 9999).ok);
+
+  const v = R.viewFor(room, sb);
+  assert.deepEqual(v.chat.map((c) => c.k), [R.EMOTES[0], R.EMOTES[1], R.EMOTES[2]]);
+  assert.ok(v.chat.every((c) => Object.keys(c).sort().join() === 'at,id,k,seat'), 'tidak ada field lain');
+  assert.equal(JSON.stringify(v).includes(A.id), false);
+
+  // hanya beberapa emote terakhir yang disimpan
+  for (let i = 0; i < 20; i++) R.say(room, sa, R.EMOTES[i % R.EMOTES.length], 20000 + i * R.SAY_COOLDOWN_MS);
+  assert.ok(room.chat.length <= 6, `chat dipangkas (${room.chat.length})`);
+  assert.deepEqual(room.chat.map((c) => c.id), [...room.chat.map((c) => c.id)].sort((x, y) => x - y), 'id naik terus');
+
+  // pemain yang sudah keluar tidak bisa emote
+  R.leave(room, B.id);
+  assert.ok(!R.say(room, sb, R.EMOTES[0], 999999).ok);
+});

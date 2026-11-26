@@ -364,6 +364,10 @@ button { font: inherit; color: inherit; }
 .seat.s2 .say { left: 0; }
 .say:empty { display: none; }
 .say.hot { background: var(--accent); color: var(--accent-ink); }
+.say.emote { font-size: 14px; background: var(--accent); color: var(--accent-ink); }
+.emotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 2px; }
+.emotes .btn { justify-content: flex-start; font-size: 15px; }
+#app.portrait .emotes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .reveal { display: flex; flex-wrap: wrap; max-width: calc(var(--vw) * 34); }
 .reveal .card { margin-left: calc(var(--mw) * -.5); }
 .reveal .card:first-child { margin-left: 0; }

@@ -18,6 +18,12 @@ export const RANKED_WAIT_MS = 15000; // Ranked: tunggu pemain lain segini setela
 export const RANKED_NEXT_MS = 9000; // Ranked: jeda setelah tangan selesai sebelum tangan berikutnya
 export const IDLE_HANDS = 2; // Ranked: dimainkan otomatis 2 tangan penuh berturut-turut = dikeluarkan
 export const ROOM_CODE = /^[A-Z0-9]{5}$/;
+// Emote: daftar tertutup (klien TIDAK boleh mengirim teks bebas — tidak ada yang perlu disaring/dimoderasi).
+// Kuncinya yang dikirim; tulisannya ada di src/main.js (EMOTE_WORDS) supaya ikut terjemahan.
+export const EMOTES = ['halo', 'ayo', 'mantap', 'wow', 'aduh', 'hoki', 'maaf', 'gg'];
+export const SAY_COOLDOWN_MS = 2500; // satu emote per kursi tiap segini
+export const SAY_SHOW_MS = 4000; // berapa lama gelembungnya tampil di layar
+const SAY_KEEP = 6; // emote terakhir yang ikut dikirim ke klien (biar yang baru sambung tidak kebanjiran)
 export const validId = (s) => typeof s === 'string' && /^[a-z0-9]{12,40}$/.test(s);
 export const cleanName = (s) => String(s ?? '').replace(/[\u0000-\u001f\u007f<>&"']/g, '').replace(/\s+/g, ' ').trim().slice(0, 16) || 'Pemain';
 
@@ -31,6 +37,7 @@ function base(code, kind, now, level) {
     code, kind, status: 'lobby', hostId: null, createdAt: now, level: validLevel(level) ? level : DEFAULT_LEVEL,
     seats: [null, null, null], pending: [], round: 0, starter: -1, game: null, deadline: 0, turnAt: 0,
     totals: [0, 0, 0], last: null, startAt: 0, nextAt: 0, ranked: kind === 'ranked' ? {} : null,
+    chat: [], chatSeq: 0,
   };
 }
 const seatFor = (u) => ({ id: u.id, name: cleanName(u.name), avatar: clampAvatar(u.avatar) ?? 0 });
@@ -165,6 +172,20 @@ export function act(room, seat, msg, now) {
   return { ok: true };
 }
 
+/**
+ * Kirim emote. Hanya kunci dari EMOTES (tidak ada teks bebas), satu per kursi tiap SAY_COOLDOWN_MS.
+ * -> { ok } | { ok:false } (ditolak diam-diam: tidak perlu pesan error untuk emote)
+ */
+export function say(room, seat, k, now) {
+  const s = room.seats[seat];
+  if (!human(s) || s.left || !EMOTES.includes(k)) return { ok: false };
+  if (s.sayAt && now - s.sayAt < SAY_COOLDOWN_MS) return { ok: false };
+  s.sayAt = now;
+  room.chatSeq = (room.chatSeq || 0) + 1; // meja lama (tersimpan sebelum fitur ini) belum punya field-nya
+  room.chat = [...(room.chat || []).slice(-(SAY_KEEP - 1)), { id: room.chatSeq, seat, k, at: now }];
+  return { ok: true };
+}
+
 /** Pemain mematikan "main otomatis" (setelah 2x waktu habis). */
 export function takeover(room, seat) {
   const s = room.seats[seat];
@@ -235,6 +256,7 @@ function finishHand(room, now) {
   if (room.kind === 'ranked') {
     room.last.settled = false;
     room.last.ratings = [null, null, null];
+    room.last.bonus = [0, 0, 0]; // bonus harian dari server akun (tangan Ranked pertama hari itu)
     // koin sementara = poin × taruhan; angka pasti (saldo tidak bisa minus) diisi applySettle() setelah server akun menjawab
     room.last.coins = rankedStake(room) ? r.points.map((p) => coinDelta(p, rankedStake(room))) : null;
     room.nextAt = now + RANKED_NEXT_MS;
@@ -381,6 +403,7 @@ export function applySettle(room, res) {
     room.last.ratings[i] = r.delta;
     s.rating = r.rating;
     s.tier = r.tier;
+    if (room.last.bonus) room.last.bonus[i] = Number(r.bonus) || 0;
     if (room.last.coins) {
       room.last.coins[i] = Number(r.coinDelta) || 0;
       if (Number.isFinite(r.coins)) s.coins = r.coins;
@@ -401,6 +424,8 @@ export function viewFor(room, seat, online = () => true, viewerId = '') {
       online: !!s.bot || online(s.id),
     }),
     totals: room.totals,
+    // emote terakhir (kunci saja, tanpa id pemain). Klien yang memutuskan mana yang masih baru, dari `at` + selisih jam server.
+    chat: room.chat?.length ? room.chat : null,
     game: room.game && room.status !== 'lobby' ? gameView(room.game, seat) : null,
     deadline: room.status === 'playing' ? room.deadline : 0,
     turnAt: room.status === 'playing' ? room.turnAt : 0,
@@ -413,6 +438,7 @@ export function viewFor(room, seat, online = () => true, viewerId = '') {
       breakdown: L.breakdown, abandoned: L.abandoned, settled: L.settled ?? true,
       myRating: seat >= 0 && L.ratings ? L.ratings[seat] : null,
       myCoins: seat >= 0 && L.coins ? L.coins[seat] : null,
+      myBonus: seat >= 0 && L.bonus ? L.bonus[seat] : 0,
     } : null,
   };
 }
