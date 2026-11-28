@@ -166,6 +166,45 @@ test('kerja sama petani: tidak merebut dari teman, menyuapi teman yang tinggal 1
   assert.deepEqual(botAction(h, 1, 'hard', r), { t: 'play', cards: P('4') });
 });
 
+test('pasti menang: roket/bom/kartu teratas dikeluarkan, tidak disimpan sampai keduluan lawan', () => {
+  // state akhir tangan yang konsisten: kartu yang tidak dipegang siapa pun dianggap sudah keluar
+  const late = (hands, lord = 0) => {
+    const g = fixed(hands, lord);
+    const held = new Set(g.hands.flat());
+    const gone = [];
+    for (let c = 0; c < 54; c++) if (!held.has(c)) gone.push(c);
+    g.plays = [{ seat: lord, cards: gone }, { seat: -1, trick: true }];
+    return g;
+  };
+  const LV = ['normal', 'hard', 'expert', 'god'];
+  const opp = ['9h 8h 7h 6h 5h Kh Qh Jh', '9s 8s 7s 6s 5s Ks Qs Js'];
+
+  // mengikuti: petani (kursi 0) tinggal roket + 1 kartu, tuan tanah masih 8 kartu → roket, lalu kartu terakhir
+  for (const lv of LV) {
+    const g = late(['BJ RJ 3', '9h 9s 8h 7h 6h Kh Qh Jh', '8s 7s 6s 5s 5h Ks Qs Js'], 1);
+    assert.ok(applyAction(g, 1, { t: 'play', cards: g.hands[1].filter((c) => c >> 2 === 6) }).ok);
+    assert.ok(applyAction(g, 2, { t: 'pass' }).ok);
+    assert.deepEqual(botAction(g, 0, lv, r), { t: 'play', cards: [52, 53] }, lv + ': roket untuk menutup tangan');
+  }
+  // memimpin: roket + 1 kartu → roket dulu (kalau kartu kecilnya dulu, lawan yang tinggal sedikit bisa habis lebih cepat)
+  for (const lv of LV) {
+    const g = late(['BJ RJ 3', ...opp], 0);
+    assert.deepEqual(botAction(g, 0, lv, r), { t: 'play', cards: [52, 53] }, lv + ': memimpin dengan roket');
+  }
+  // bom + 1 kartu, tidak ada bom/roket di luar → bom dulu
+  const b = late(['5 5 5 5 3', '9h 8h 7h 6h 4h Kh Qh Jh', '9s 8s 7s 6s 4s Ks Qs Js'], 0);
+  assert.deepEqual(botAction(b, 0, 'hard', r), { t: 'play', cards: P('5 5 5 5') });
+  // bom + 1 kartu TAPI roket masih di luar → bukan pasti menang, bom disimpan
+  const b2 = late(['5 5 5 5 3', 'BJ RJ 8h 7h 6h Kh Qh Jh', '9s 8s 7s 6s 4s Ks Qs Js'], 0);
+  assert.equal(botAction(b2, 0, 'hard', r).cards.length, 1, 'bom tidak dibuang kalau masih bisa dikalahkan roket');
+  // bom + 1 kartu TAPI ada bom lebih tinggi di luar → sama, disimpan
+  const b3 = late(['5 5 5 5 3', '9h 9s 9d 9c 7h Kh Qh Jh', '8s 7s 6s 4s 4h Ks Qs Js'], 0);
+  assert.equal(botAction(b3, 0, 'hard', r).cards.length, 1, 'bom tidak dibuang kalau ada bom lebih tinggi');
+  // kartu teratas (RJ, BJ sudah keluar) + pasang → RJ dulu supaya giliran memimpin balik
+  const t = late(['RJ 4 4', ...opp], 0);
+  assert.deepEqual(botAction(t, 0, 'hard', r), { t: 'play', cards: [53] });
+});
+
 test('saran: langkah pertama sah dan bisa mengalahkan', () => {
   const g = fixed(['3 3 4 4 5 5 9 10 J Q K', '6 6 7 7 8 8 2', 'A A'], 0);
   applyAction(g, 0, { t: 'play', cards: P('3 3 4 4 5 5') });

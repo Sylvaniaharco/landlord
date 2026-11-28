@@ -67,6 +67,10 @@ npm run dev:online  # build + wrangler dev (meja teman). Ranked lokal: lihat REA
 - Bot (`bot.js`) hanya boleh membaca tangan sendiri + info publik (jumlah kartu, kartu keluar). Tes `bot tidak mengintip` menjaga ini.
   Bot di server: Ranked ikut taruhannya (`rankedLevel` di `src/engine/room.js`: meja 500 = **God**, meja 50 & 100 = **Jago**, meja 25 & meja lama = Sedang),
   meja teman = level pilihan pembuat meja, kursi yang keluar/putus = Sedang.
+- `sureWin()` di `bot.js` (semua level kecuali Mudah, sebelum heuristik): kalau sisa kartu bisa keluar sekali jalan DAN langkah
+  sekarang tidak bisa dikalahkan siapa pun (dicek dari gabungan kartu yang belum terlihat, bukan tangan lawan), langkah itu
+  langsung dimainkan — giliran memimpin pasti balik. Tanpa ini bot menyimpan roket/bom (`costOf` menilai tangannya "bagus")
+  sampai keduluan lawan. Diukur A/B seed sama: +0,2 poin/tangan, biaya waktu tidak terukur. Bom/roket didahulukan (pengali naik).
 - Level **Jago** (`expert`) = heuristik Sulit menyaring 6 langkah terbaik, lalu Monte Carlo: 16 dunia diundi dari kartu yang belum
   terlihat (bukan dari tangan lawan — jangan sampai bocor), tiap dunia dimainkan sampai habis dengan bot Sulit, dipilih yang paling
   sering menang. Seed dunia dari `g.seed` + jumlah langkah (bukan dari `rnd` pemanggil) supaya keputusan tetap bisa diulang.
