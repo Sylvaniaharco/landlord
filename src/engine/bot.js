@@ -2,7 +2,7 @@
 // tangan sendiri, jumlah kartu lawan, kartu yang sudah keluar, siapa tuan tanah. Tidak pernah mengintip tangan lawan / kartu dasar.
 // Keputusan bisa diulang: semua acak dari `rnd` (RNG berseed) yang diberikan pemanggil.
 import { counts, rankOf, sortHand, mulberry32, mixSeed, R2, BJ, RJ, MAX_CHAIN } from './cards.js';
-import { allMoves, legalMoves, isBombish } from './combos.js';
+import { allMoves, legalMoves, isBombish, classify, beats } from './combos.js';
 import { bidOptions, mustLead, prevCombo, playedCards, applyAction } from './game.js';
 
 export const LEVELS = { easy: 'Mudah', normal: 'Sedang', hard: 'Sulit', expert: 'Jago', god: 'God' };
@@ -117,6 +117,35 @@ function topOf(m, outstanding) {
 
 const isControl = (m) => m.cards.some((c) => rankOf(c) >= R2);
 
+const SURE_WIN_MAX = 8; // batas jumlah kartu untuk cek "pasti menang" (biar murah: dua langkah terakhir saja)
+
+/**
+ * Langkah yang sudah memastikan kemenangan: sisa kartunya bisa keluar sekali jalan DAN langkah ini tidak bisa
+ * dikalahkan siapa pun (dilihat dari gabungan kartu yang BELUM terlihat, bukan dari tangan lawan), jadi giliran
+ * memimpin pasti balik ke kita. Contoh yang sering: tinggal roket + 1 kartu. Tanpa cek ini bot menilai tangannya
+ * "bagus" (roket/bom = kendali, costOf-nya kecil) lalu menyimpannya sampai keduluan lawan.
+ * Bom/roket didahulukan karena pengali naik → kemenangannya lebih besar. -> langkah | null
+ */
+function sureWin(g, seat, hand, moves) {
+  const left = hand.length;
+  if (left < 2 || left > SURE_WIN_MAX) return null;
+  const cands = [];
+  for (const m of moves) {
+    if (m.cards.length >= left) continue;
+    const used = new Set(m.cards);
+    if (classify(hand.filter((c) => !used.has(c)), g.rules).length) cands.push(m);
+  }
+  if (!cands.length) return null;
+  cands.sort((a, b) => (isBombish(b.combo) ? 1 : 0) - (isBombish(a.combo) ? 1 : 0));
+  let pool = null;
+  for (const m of cands) {
+    if (m.combo.type === 'rocket') return m; // roket tidak pernah bisa dikalahkan
+    if (!pool) pool = allMoves(unseen(g, seat), g.rules, { fewKickers: true });
+    if (!pool.some((p) => beats(p.combo, m.combo))) return m;
+  }
+  return null;
+}
+
 function chooseMove(g, seat, level, rnd) {
   const hand = g.hands[seat];
   const lead = mustLead(g);
@@ -127,6 +156,10 @@ function chooseMove(g, seat, level, rnd) {
   if (!lead && !moves.length) return null;
   const finisher = moves.find((m) => m.cards.length === hand.length);
   if (finisher) return finisher;
+  if (level !== 'easy') {
+    const sure = sureWin(g, seat, hand, moves);
+    if (sure) return sure;
+  }
   const byLast = g.trick.last?.seat;
   const fromMate = !lead && byLast === I.mate;
 
